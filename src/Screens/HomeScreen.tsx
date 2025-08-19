@@ -15,6 +15,7 @@ import {
   WorkspaceList,
 } from '../components';
 import { LocationSearchScreen } from './LocationSearchScreen';
+import { DeskScreen } from './DeskScreen';
 import { Colors } from '../constants/theme';
 import { Location, Workspace, ServiceType, TabNavigationType } from '../types';
 import {
@@ -95,7 +96,9 @@ export const HomeScreen: React.FC = () => {
 
   const handleTabPress = (tab: TabNavigationType) => {
     setActiveTab(tab);
-    if (tab !== 'Home') {
+    if (tab === 'Desks') {
+      // Navigation to Desks screen is handled by conditional rendering
+    } else if (tab !== 'Home') {
       Alert.alert('Navigation', `Navigate to ${tab} screen`);
     }
   };
@@ -136,6 +139,26 @@ export const HomeScreen: React.FC = () => {
         onLocationSelect={handleLocationSelect}
         onBack={handleLocationSearchBack}
       />
+    );
+  }
+
+  // Show desk screen if Desks tab is active
+  if (activeTab === 'Desks') {
+    return (
+      <View style={styles.container}>
+        <StatusBar style="dark" backgroundColor={Colors.white} />
+        
+        <DeskScreen
+          selectedLocation={selectedLocation}
+          selectedSubLocation={selectedSubLocation}
+          onBack={() => setActiveTab('Home')}
+        />
+
+        <BottomNavigation
+          activeTab={activeTab}
+          onTabPress={handleTabPress}
+        />
+      </View>
     );
   }
 

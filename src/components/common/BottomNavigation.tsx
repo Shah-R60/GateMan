@@ -5,7 +5,6 @@ import {
   StyleSheet,
   TouchableOpacity,
 } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { Colors, Spacing, FontSizes, FontWeights } from '../../constants/theme';
 import { TabNavigationType } from '../../types';
@@ -33,42 +32,37 @@ export const BottomNavigation: React.FC<BottomNavigationProps> = ({
   onTabPress,
 }) => {
   return (
-    <SafeAreaView style={styles.safeArea}>
-      <View style={styles.container}>
-        {tabs.map((tab) => {
-          const isActive = activeTab === tab.key;
-          return (
-            <TouchableOpacity
-              key={tab.key}
-              style={styles.tabItem}
-              onPress={() => onTabPress(tab.key)}
-              activeOpacity={0.7}
+    <View style={styles.container}>
+      {tabs.map((tab) => {
+        const isActive = activeTab === tab.key;
+        return (
+          <TouchableOpacity
+            key={tab.key}
+            style={styles.tabItem}
+            onPress={() => onTabPress(tab.key)}
+            activeOpacity={0.7}
+          >
+            <Ionicons
+              name={isActive ? tab.icon : `${tab.icon}-outline` as any}
+              size={24}
+              color={isActive ? Colors.primary : Colors.text.secondary}
+            />
+            <Text
+              style={[
+                styles.tabText,
+                { color: isActive ? Colors.primary : Colors.text.secondary },
+              ]}
             >
-              <Ionicons
-                name={isActive ? tab.icon : `${tab.icon}-outline` as any}
-                size={24}
-                color={isActive ? Colors.primary : Colors.text.secondary}
-              />
-              <Text
-                style={[
-                  styles.tabText,
-                  { color: isActive ? Colors.primary : Colors.text.secondary },
-                ]}
-              >
-                {tab.title}
-              </Text>
-            </TouchableOpacity>
-          );
-        })}
-      </View>
-    </SafeAreaView>
+              {tab.title}
+            </Text>
+          </TouchableOpacity>
+        );
+      })}
+    </View>
   );
 };
 
 const styles = StyleSheet.create({
-  safeArea: {
-    backgroundColor: Colors.white,
-  },
   container: {
     flexDirection: 'row',
     backgroundColor: Colors.white,
