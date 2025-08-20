@@ -22,7 +22,6 @@ interface MeetingRoomScreenProps {
   selectedSubLocation: string;
   onBack: () => void;
   onWorkspacePress?: (workspace: Workspace) => void;
-  onBookPress?: (workspace: Workspace) => void;
 }
 
 const sortOptions = [
@@ -38,7 +37,6 @@ export const MeetingRoomScreen: React.FC<MeetingRoomScreenProps> = ({
   selectedSubLocation,
   onBack,
   onWorkspacePress,
-  onBookPress,
 }) => {
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedSort, setSelectedSort] = useState('Popularity');
@@ -128,11 +126,8 @@ export const MeetingRoomScreen: React.FC<MeetingRoomScreenProps> = ({
   };
 
   const handleBookPress = (workspace: Workspace) => {
-    if (onBookPress) {
-      onBookPress(workspace);
-    } else {
-      Alert.alert('Book Meeting Room', `Booking ${workspace.name} for ${selectedDate}`);
-    }
+    // Book Room functionality is disabled - only Book Desk is available
+    Alert.alert('Info', 'Meeting room booking is not available at this time.');
   };
 
   const handleSharePress = async (workspace: Workspace) => {

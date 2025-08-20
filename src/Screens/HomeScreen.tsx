@@ -21,6 +21,7 @@ import { MeetingRoomScreen } from './MeetingRoomScreen';
 import { WorkspaceSearchScreen } from './WorkspaceSearchScreen';
 import { WorkspaceDetailsScreen } from './WorkspaceDetailsScreen';
 import { BookingScreen } from './BookingScreen';
+import { ProfileScreen } from './ProfileScreen';
 import { Colors } from '../constants/theme';
 import { Location, Workspace, ServiceType, TabNavigationType } from '../types';
 import {
@@ -44,6 +45,7 @@ export const HomeScreen: React.FC = () => {
   const [bookingWorkspace, setBookingWorkspace] = useState<Workspace | null>(null);
   const [showDeskScreen, setShowDeskScreen] = useState(false);
   const [showMeetingRoomScreen, setShowMeetingRoomScreen] = useState(false);
+  const [showProfileScreen, setShowProfileScreen] = useState(false);
 
   // Event handlers
   const handleLocationPress = () => {
@@ -51,7 +53,7 @@ export const HomeScreen: React.FC = () => {
   };
 
   const handleProfilePress = () => {
-    Alert.alert('Profile', 'Profile screen would open here');
+    setShowProfileScreen(true);
   };
 
   const handleSearchChange = (text: string) => {
@@ -224,6 +226,15 @@ export const HomeScreen: React.FC = () => {
     );
   }
 
+  // Show profile screen if profile is selected
+  if (showProfileScreen) {
+    return (
+      <ProfileScreen
+        onBack={() => setShowProfileScreen(false)}
+      />
+    );
+  }
+
   // Show desk screen if Desks tab is active or showDeskScreen is true
   if (activeTab === 'Desks' || showDeskScreen) {
     return (
@@ -263,7 +274,6 @@ export const HomeScreen: React.FC = () => {
             setShowMeetingRoomScreen(false);
           }}
           onWorkspacePress={handleWorkspacePress}
-          onBookPress={handleBookPress}
         />
 
         <BottomNavigation
