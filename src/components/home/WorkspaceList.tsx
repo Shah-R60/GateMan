@@ -16,6 +16,7 @@ interface WorkspaceListProps {
   onWorkspacePress: (workspace: Workspace) => void;
   onBookPress: (workspace: Workspace) => void;
   onFavoritePress?: (workspace: Workspace) => void;
+  onSharePress?: (workspace: Workspace) => void;
   onViewAllPress: () => void;
 }
 
@@ -25,6 +26,7 @@ export const WorkspaceList: React.FC<WorkspaceListProps> = ({
   onWorkspacePress,
   onBookPress,
   onFavoritePress,
+  onSharePress,
   onViewAllPress,
 }) => {
   return (
@@ -49,6 +51,7 @@ export const WorkspaceList: React.FC<WorkspaceListProps> = ({
             onPress={onWorkspacePress}
             onBookPress={onBookPress}
             onFavoritePress={onFavoritePress}
+            onSharePress={onSharePress}
           />
         ))}
       </ScrollView>

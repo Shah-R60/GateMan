@@ -130,7 +130,7 @@ export const CitySearchScreen: React.FC<CitySearchScreenProps> = ({
       } else if (status === 'denied') {
         // Permission denied, show the custom permission dialog
         Alert.alert(
-          'Allow myHQ to access this device\'s approximate location?',
+          'Allow GateMan to access this device\'s approximate location?',
           '',
           [
             {

@@ -4,6 +4,7 @@ import {
   StyleSheet,
   ScrollView,
   Alert,
+  Share,
 } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
 import {
@@ -16,6 +17,10 @@ import {
 } from '../components';
 import { LocationSearchScreen } from './LocationSearchScreen';
 import { DeskScreen } from './DeskScreen';
+import { MeetingRoomScreen } from './MeetingRoomScreen';
+import { WorkspaceSearchScreen } from './WorkspaceSearchScreen';
+import { WorkspaceDetailsScreen } from './WorkspaceDetailsScreen';
+import { BookingScreen } from './BookingScreen';
 import { Colors } from '../constants/theme';
 import { Location, Workspace, ServiceType, TabNavigationType } from '../types';
 import {
@@ -34,6 +39,11 @@ export const HomeScreen: React.FC = () => {
   const [searchQuery, setSearchQuery] = useState('');
   const [activeTab, setActiveTab] = useState<TabNavigationType>('Home');
   const [showLocationSearch, setShowLocationSearch] = useState(false);
+  const [showWorkspaceSearch, setShowWorkspaceSearch] = useState(false);
+  const [selectedWorkspace, setSelectedWorkspace] = useState<Workspace | null>(null);
+  const [bookingWorkspace, setBookingWorkspace] = useState<Workspace | null>(null);
+  const [showDeskScreen, setShowDeskScreen] = useState(false);
+  const [showMeetingRoomScreen, setShowMeetingRoomScreen] = useState(false);
 
   // Event handlers
   const handleLocationPress = () => {
@@ -49,6 +59,16 @@ export const HomeScreen: React.FC = () => {
     // In a real app, this would trigger API search or filter local data
   };
 
+  const handleSearchPress = () => {
+    setShowWorkspaceSearch(true);
+  };
+
+  const handleWorkspaceSelect = (workspace: Workspace) => {
+    console.log('Selected workspace from home:', workspace);
+    // Handle workspace selection - could navigate to workspace details
+    setShowWorkspaceSearch(false);
+  };
+
   const handleOfferPress = (offer: any) => {
     Alert.alert(
       'Offer Details',
@@ -58,36 +78,59 @@ export const HomeScreen: React.FC = () => {
   };
 
   const handleServicePress = (service: ServiceType) => {
-    Alert.alert(
-      'Service Selected',
-      `You selected ${service.name}. This would navigate to the ${service.name.toLowerCase()} listing screen.`
-    );
+    if (service.name === 'Desk') {
+      setActiveTab('Desks');
+      setShowDeskScreen(true);
+      setShowMeetingRoomScreen(false);
+    } else if (service.name === 'Meeting Room') {
+      setActiveTab('Meeting Rooms');
+      setShowMeetingRoomScreen(true);
+      setShowDeskScreen(false);
+    } else {
+      Alert.alert(
+        'Service Selected',
+        `You selected ${service.name}. This would navigate to the ${service.name.toLowerCase()} listing screen.`
+      );
+    }
   };
 
   const handleWorkspacePress = (workspace: Workspace) => {
-    Alert.alert(
-      'Workspace Details',
-      `${workspace.name} - ${workspace.location}\nPrice: ${workspace.currency}${workspace.price}${workspace.period}`,
-      [
-        { text: 'Cancel', style: 'cancel' },
-        { text: 'View Details', onPress: () => console.log('View details') },
-      ]
-    );
+    setSelectedWorkspace(workspace);
   };
 
   const handleBookPress = (workspace: Workspace) => {
-    Alert.alert(
-      'Book Workspace',
-      `Book a desk at ${workspace.name}?`,
-      [
-        { text: 'Cancel', style: 'cancel' },
-        { text: 'Book Now', onPress: () => console.log('Booking initiated') },
-      ]
-    );
+    setBookingWorkspace(workspace);
   };
 
   const handleFavoritePress = (workspace: Workspace) => {
     Alert.alert('Favorite', `${workspace.name} added to favorites`);
+  };
+
+  const handleSharePress = async (workspace: Workspace) => {
+    try {
+      const shareMessage = `Hey, I found this amazing Coworking desk that can be booked for a day. No monthly commitment required!\n\n${workspace.name}\n${workspace.location}\nPrice: ${workspace.currency}${workspace.price}${workspace.period}\n\nCheck it out and book your workspace today!`;
+      
+      const result = await Share.share({
+        message: shareMessage,
+        title: `Check out ${workspace.name}`,
+      });
+
+      if (result.action === Share.sharedAction) {
+        if (result.activityType) {
+          // Shared via specific activity
+          console.log('Shared via:', result.activityType);
+        } else {
+          // Shared
+          console.log('Workspace shared successfully');
+        }
+      } else if (result.action === Share.dismissedAction) {
+        // Dismissed
+        console.log('Share dismissed');
+      }
+    } catch (error) {
+      Alert.alert('Error', 'Unable to share workspace');
+      console.error('Share error:', error);
+    }
   };
 
   const handleViewAllPress = () => {
@@ -97,8 +140,15 @@ export const HomeScreen: React.FC = () => {
   const handleTabPress = (tab: TabNavigationType) => {
     setActiveTab(tab);
     if (tab === 'Desks') {
-      // Navigation to Desks screen is handled by conditional rendering
-    } else if (tab !== 'Home') {
+      setShowDeskScreen(true);
+      setShowMeetingRoomScreen(false);
+    } else if (tab === 'Meeting Rooms') {
+      setShowMeetingRoomScreen(true);
+      setShowDeskScreen(false);
+    } else if (tab === 'Home') {
+      setShowDeskScreen(false);
+      setShowMeetingRoomScreen(false);
+    } else {
       Alert.alert('Navigation', `Navigate to ${tab} screen`);
     }
   };
@@ -142,8 +192,40 @@ export const HomeScreen: React.FC = () => {
     );
   }
 
-  // Show desk screen if Desks tab is active
-  if (activeTab === 'Desks') {
+  // Show workspace search screen if state is true
+  if (showWorkspaceSearch) {
+    return (
+      <WorkspaceSearchScreen
+        currentCity={selectedLocation.city}
+        onWorkspaceSelect={handleWorkspaceSelect}
+        onBack={() => setShowWorkspaceSearch(false)}
+        onWorkspacePress={handleWorkspacePress}
+      />
+    );
+  }
+
+  // Show workspace details screen if workspace is selected
+  if (selectedWorkspace) {
+    return (
+      <WorkspaceDetailsScreen
+        workspace={selectedWorkspace}
+        onBack={() => setSelectedWorkspace(null)}
+      />
+    );
+  }
+
+  // Show booking screen if booking workspace is selected
+  if (bookingWorkspace) {
+    return (
+      <BookingScreen
+        workspace={bookingWorkspace}
+        onBack={() => setBookingWorkspace(null)}
+      />
+    );
+  }
+
+  // Show desk screen if Desks tab is active or showDeskScreen is true
+  if (activeTab === 'Desks' || showDeskScreen) {
     return (
       <View style={styles.container}>
         <StatusBar style="dark" backgroundColor={Colors.white} />
@@ -151,11 +233,41 @@ export const HomeScreen: React.FC = () => {
         <DeskScreen
           selectedLocation={selectedLocation}
           selectedSubLocation={selectedSubLocation}
-          onBack={() => setActiveTab('Home')}
+          onBack={() => {
+            setActiveTab('Home');
+            setShowDeskScreen(false);
+          }}
+          onWorkspacePress={handleWorkspacePress}
+          onBookPress={handleBookPress}
         />
 
         <BottomNavigation
-          activeTab={activeTab}
+          activeTab="Desks"
+          onTabPress={handleTabPress}
+        />
+      </View>
+    );
+  }
+
+  // Show meeting room screen if Meeting Rooms tab is active or showMeetingRoomScreen is true
+  if (activeTab === 'Meeting Rooms' || showMeetingRoomScreen) {
+    return (
+      <View style={styles.container}>
+        <StatusBar style="dark" backgroundColor={Colors.white} />
+        
+        <MeetingRoomScreen
+          selectedLocation={selectedLocation}
+          selectedSubLocation={selectedSubLocation}
+          onBack={() => {
+            setActiveTab('Home');
+            setShowMeetingRoomScreen(false);
+          }}
+          onWorkspacePress={handleWorkspacePress}
+          onBookPress={handleBookPress}
+        />
+
+        <BottomNavigation
+          activeTab="Meeting Rooms"
           onTabPress={handleTabPress}
         />
       </View>
@@ -182,6 +294,9 @@ export const HomeScreen: React.FC = () => {
           placeholder={`Try: Oyo Workflo - ${selectedLocation.name} Building`}
           value={searchQuery}
           onChangeText={handleSearchChange}
+          onSearchPress={handleSearchPress}
+          onPress={handleSearchPress}
+          editable={false}
         />
 
         <WelcomeOffers
@@ -200,6 +315,7 @@ export const HomeScreen: React.FC = () => {
           onWorkspacePress={handleWorkspacePress}
           onBookPress={handleBookPress}
           onFavoritePress={handleFavoritePress}
+          onSharePress={handleSharePress}
           onViewAllPress={handleViewAllPress}
         />
       </ScrollView>

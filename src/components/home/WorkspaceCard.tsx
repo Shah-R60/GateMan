@@ -15,6 +15,7 @@ interface WorkspaceCardProps {
   onPress: (workspace: Workspace) => void;
   onBookPress: (workspace: Workspace) => void;
   onFavoritePress?: (workspace: Workspace) => void;
+  onSharePress?: (workspace: Workspace) => void;
 }
 
 export const WorkspaceCard: React.FC<WorkspaceCardProps> = ({
@@ -22,6 +23,7 @@ export const WorkspaceCard: React.FC<WorkspaceCardProps> = ({
   onPress,
   onBookPress,
   onFavoritePress,
+  onSharePress,
 }) => {
   return (
     <TouchableOpacity
@@ -43,7 +45,7 @@ export const WorkspaceCard: React.FC<WorkspaceCardProps> = ({
         )}
         <TouchableOpacity
           style={styles.shareButton}
-          onPress={() => {}}
+          onPress={() => onSharePress?.(workspace)}
           activeOpacity={0.8}
         >
           <Ionicons name="share-outline" size={20} color={Colors.white} />

@@ -17,7 +17,7 @@ import { Location, Workspace } from '../types';
 import { FilterModal } from '../components/FilterModal';
 import { WorkspaceSearchScreen } from './WorkspaceSearchScreen';
 
-interface DeskScreenProps {
+interface MeetingRoomScreenProps {
   selectedLocation: Location;
   selectedSubLocation: string;
   onBack: () => void;
@@ -33,7 +33,7 @@ const sortOptions = [
   'Rating',
 ];
 
-export const DeskScreen: React.FC<DeskScreenProps> = ({
+export const MeetingRoomScreen: React.FC<MeetingRoomScreenProps> = ({
   selectedLocation,
   selectedSubLocation,
   onBack,
@@ -55,43 +55,43 @@ export const DeskScreen: React.FC<DeskScreenProps> = ({
     parking: false,
     metroConnectivity: false,
     priceRange: {
-      min: 250,
-      max: 800,
+      min: 500,
+      max: 2000,
     },
   });
 
-  // Mock data for desk workspaces
-  const deskWorkspaces: Workspace[] = [
+  // Mock data for meeting room workspaces
+  const meetingRoomWorkspaces: Workspace[] = [
     {
       id: '1',
-      name: 'awfis - Kirsh Cubical',
+      name: 'awfis - Executive Meeting Room',
       location: 'Thaltej, Ahmedabad',
       distance: '7.06 kms away',
       hours: '09:00 am - 06:00 pm (Tue)',
-      price: 300,
+      price: 800,
       currency: '₹',
-      period: '/day',
-      imageUrl: 'https://images.unsplash.com/photo-1497366216548-37526070297c?w=600',
+      period: '/hr',
+      imageUrl: 'https://images.unsplash.com/photo-1560472354-b33ff0c44a43?w=600',
       isPopular: true,
       rating: 4.34,
       seatingTypes: [
-        { type: 'Open Desk', available: true },
+        { type: 'Meeting Room', available: true },
       ],
     },
     {
       id: '2',
-      name: 'WeWork BKC',
+      name: 'WeWork Conference Room',
       location: 'Bandra Kurla Complex, Mumbai',
       distance: '12.5 kms away',
       hours: '24/7 Access',
-      price: 450,
+      price: 1200,
       currency: '₹',
-      period: '/day',
+      period: '/hr',
       imageUrl: 'https://images.unsplash.com/photo-1542744173-8e7e53415bb0?w=600',
       isPopular: true,
       rating: 4.7,
       seatingTypes: [
-        { type: 'Private Desk', available: true },
+        { type: 'Meeting Room', available: true },
       ],
     },
   ];
@@ -101,36 +101,13 @@ export const DeskScreen: React.FC<DeskScreenProps> = ({
     setShowSortOptions(false);
   };
 
-  const handleDateSelect = (date: string) => {
-    setSelectedDate(date);
-    setShowDatePicker(false);
-  };
-
-  const handleWorkspacePress = (workspace: Workspace) => {
-    // Navigate to workspace details
-    if (onWorkspacePress) {
-      onWorkspacePress(workspace);
-    } else {
-      console.log('Workspace pressed:', workspace.name);
-    }
-  };
-
-  const handleBookPress = (workspace: Workspace) => {
-    if (onBookPress) {
-      onBookPress(workspace);
-    } else {
-      console.log('Book pressed for:', workspace.name);
-    }
-  };
-
   const handleFiltersPress = () => {
     setShowFilterModal(true);
   };
 
   const handleApplyFilters = (filters: any) => {
     setActiveFilters(filters);
-    // Apply filters to workspace list here
-    console.log('Applied filters:', filters);
+    setShowFilterModal(false);
   };
 
   const handleSearchPress = () => {
@@ -138,18 +115,29 @@ export const DeskScreen: React.FC<DeskScreenProps> = ({
   };
 
   const handleWorkspaceSelect = (workspace: Workspace) => {
-    console.log('Selected workspace:', workspace);
-    // Handle workspace selection here
+    setShowWorkspaceSearch(false);
+    if (onWorkspacePress) {
+      onWorkspacePress(workspace);
+    }
   };
 
-  const handleMapPress = () => {
-    // Open map view
-    console.log('Map pressed');
+  const handleWorkspacePress = (workspace: Workspace) => {
+    if (onWorkspacePress) {
+      onWorkspacePress(workspace);
+    }
+  };
+
+  const handleBookPress = (workspace: Workspace) => {
+    if (onBookPress) {
+      onBookPress(workspace);
+    } else {
+      Alert.alert('Book Meeting Room', `Booking ${workspace.name} for ${selectedDate}`);
+    }
   };
 
   const handleSharePress = async (workspace: Workspace) => {
     try {
-      const shareMessage = `Hey, I found this amazing Coworking desk that can be booked for a day. No monthly commitment required!\n\n${workspace.name}\n${workspace.location}\nPrice: ${workspace.currency}${workspace.price}${workspace.period}\n\nCheck it out and book your workspace today!`;
+      const shareMessage = `Check out this amazing meeting room: ${workspace.name} at ${workspace.location}. Price: ${workspace.currency}${workspace.price}${workspace.period}`;
       
       const result = await Share.share({
         message: shareMessage,
@@ -160,13 +148,13 @@ export const DeskScreen: React.FC<DeskScreenProps> = ({
         if (result.activityType) {
           console.log('Shared via:', result.activityType);
         } else {
-          console.log('Workspace shared successfully');
+          console.log('Meeting room shared successfully');
         }
       } else if (result.action === Share.dismissedAction) {
         console.log('Share dismissed');
       }
     } catch (error) {
-      Alert.alert('Error', 'Unable to share workspace');
+      Alert.alert('Error', 'Unable to share meeting room');
       console.error('Share error:', error);
     }
   };
@@ -183,9 +171,9 @@ export const DeskScreen: React.FC<DeskScreenProps> = ({
     );
   }
 
-  const handleViewWorkspaces = () => {
-    // Handle view workspaces action
-    console.log('View workspaces pressed');
+  const handleViewMeetingRooms = () => {
+    // Handle view meeting rooms action
+    console.log('View meeting rooms pressed');
   };
 
   return (
@@ -211,11 +199,11 @@ export const DeskScreen: React.FC<DeskScreenProps> = ({
             <Ionicons
               name="search"
               size={20}
-              color={Colors.text.secondary}
+              color={Colors.text.light}
               style={styles.searchIcon}
             />
             <Text style={styles.searchPlaceholder}>
-              Search for workspaces in {selectedLocation.city}
+              Try: India Accelerator - Westgate Business Bay
             </Text>
           </TouchableOpacity>
         </View>
@@ -237,7 +225,7 @@ export const DeskScreen: React.FC<DeskScreenProps> = ({
             <Ionicons name="chevron-down" size={16} color={Colors.text.secondary} />
           </TouchableOpacity>
 
-          <TouchableOpacity style={styles.mapButton} onPress={handleMapPress}>
+          <TouchableOpacity style={styles.mapButton}>
             <Ionicons name="map" size={16} color={Colors.text.primary} />
             <Text style={styles.mapText}>Map</Text>
           </TouchableOpacity>
@@ -249,7 +237,6 @@ export const DeskScreen: React.FC<DeskScreenProps> = ({
             {sortOptions.map((option) => (
               <TouchableOpacity
                 key={option}
-                style={styles.sortOption}
                 onPress={() => handleSortSelect(option)}
               >
                 <Text
@@ -268,7 +255,7 @@ export const DeskScreen: React.FC<DeskScreenProps> = ({
         {/* Booking Card */}
         <View style={styles.bookingCard}>
           <Image
-            source={{ uri: 'https://images.unsplash.com/photo-1497366216548-37526070297c?w=600' }}
+            source={{ uri: 'https://images.unsplash.com/photo-1560472354-b33ff0c44a43?w=600' }}
             style={styles.bookingCardImage}
             resizeMode="cover"
           />
@@ -283,8 +270,8 @@ export const DeskScreen: React.FC<DeskScreenProps> = ({
                 <Ionicons name="chevron-down" size={16} color={Colors.white} />
               </TouchableOpacity>
               
-              <TouchableOpacity style={styles.viewWorkspacesButton} onPress={handleViewWorkspaces}>
-                <Text style={styles.viewWorkspacesText}>View Workspaces</Text>
+              <TouchableOpacity style={styles.viewWorkspacesButton} onPress={handleViewMeetingRooms}>
+                <Text style={styles.viewWorkspacesText}>View Meeting Rooms</Text>
               </TouchableOpacity>
             </View>
           </View>
@@ -300,7 +287,7 @@ export const DeskScreen: React.FC<DeskScreenProps> = ({
 
         {/* Results Count */}
         <Text style={styles.resultsText}>
-          Showing 7 result(s) for desks in {selectedLocation.city} for {selectedDate}
+          Showing 14 result(s) for meeting rooms in {selectedLocation.city} for {selectedDate}
         </Text>
 
         {/* Credits Info */}
@@ -309,9 +296,9 @@ export const DeskScreen: React.FC<DeskScreenProps> = ({
           <Text style={styles.creditsText}>What Are Credits</Text>
         </TouchableOpacity>
 
-        {/* Workspace List */}
+        {/* Meeting Room List */}
         <View style={styles.workspaceList}>
-          {deskWorkspaces.map((workspace) => (
+          {meetingRoomWorkspaces.map((workspace) => (
             <TouchableOpacity
               key={workspace.id}
               style={styles.workspaceCard}
@@ -356,7 +343,7 @@ export const DeskScreen: React.FC<DeskScreenProps> = ({
                 </View>
 
                 <Text style={styles.workspaceName}>{workspace.name}</Text>
-                <Text style={styles.workspaceCategory}>COWORKING | {workspace.location}</Text>
+                <Text style={styles.workspaceCategory}>MEETING ROOM | {workspace.location}</Text>
                 
                 <View style={styles.timeContainer}>
                   <Ionicons name="time-outline" size={16} color={Colors.text.secondary} />
@@ -374,7 +361,7 @@ export const DeskScreen: React.FC<DeskScreenProps> = ({
                     style={styles.bookButton}
                     onPress={() => handleBookPress(workspace)}
                   >
-                    <Text style={styles.bookButtonText}>Book Desk</Text>
+                    <Text style={styles.bookButtonText}>Book Room</Text>
                   </TouchableOpacity>
                 </View>
               </View>
@@ -456,7 +443,6 @@ const styles = StyleSheet.create({
   },
   filterSortContainer: {
     flexDirection: 'row',
-    alignItems: 'center',
     paddingHorizontal: Spacing.md,
     paddingVertical: Spacing.sm,
     backgroundColor: Colors.white,
@@ -481,13 +467,13 @@ const styles = StyleSheet.create({
   sortButton: {
     flexDirection: 'row',
     alignItems: 'center',
+    flex: 1,
     paddingHorizontal: Spacing.md,
     paddingVertical: Spacing.sm,
     borderWidth: 1,
     borderColor: Colors.border,
     borderRadius: BorderRadius.md,
     marginRight: Spacing.sm,
-    flex: 1,
   },
   sortText: {
     marginLeft: Spacing.xs,
@@ -495,7 +481,8 @@ const styles = StyleSheet.create({
     color: Colors.text.primary,
   },
   sortOption: {
-    marginLeft: Spacing.xs,
+    flex: 1,
+    marginLeft: Spacing.sm,
     fontSize: FontSizes.sm,
     color: Colors.text.secondary,
   },

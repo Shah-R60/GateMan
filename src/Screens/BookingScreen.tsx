@@ -1,0 +1,548 @@
+import React, { useState } from 'react';
+import {
+  View,
+  Text,
+  StyleSheet,
+  TouchableOpacity,
+  ScrollView,
+  Alert,
+} from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
+import { Ionicons } from '@expo/vector-icons';
+import { Colors, Spacing, FontSizes, FontWeights, BorderRadius } from '../constants/theme';
+import { Workspace } from '../types';
+
+interface BookingScreenProps {
+  workspace: Workspace;
+  onBack: () => void;
+}
+
+export const BookingScreen: React.FC<BookingScreenProps> = ({
+  workspace,
+  onBack,
+}) => {
+  const [selectedDate, setSelectedDate] = useState('20 Aug (Today)');
+  const [selectedMembers, setSelectedMembers] = useState(1);
+  const [selectedSeatingType, setSelectedSeatingType] = useState('Open Desk');
+  const [showDatePicker, setShowDatePicker] = useState(false);
+  const [showMembersPicker, setShowMembersPicker] = useState(false);
+  const [showSeatingPicker, setShowSeatingPicker] = useState(false);
+
+  const dateOptions = [
+    '20 Aug (Today)',
+    '21 Aug (Tomorrow)',
+    '22 Aug (Thu)',
+    '23 Aug (Fri)',
+    '24 Aug (Sat)',
+  ];
+
+  const memberOptions = [1, 2, 3, 4, 5, 6, 7];
+  const seatingOptions = ['Open Desk', 'Private Desk', 'Meeting Room'];
+
+  const getWorkspaceType = () => {
+    // Determine if this is a desk or meeting room based on workspace data
+    if (workspace.name.toLowerCase().includes('meeting') || 
+        workspace.seatingTypes?.some(type => type.type === 'Meeting Room')) {
+      return 'Meeting Room';
+    }
+    return 'Desk';
+  };
+
+  const workspaceType = getWorkspaceType();
+  
+  const calculatePrice = () => {
+    let basePrice = workspace.price;
+    if (selectedSeatingType === 'Private Desk') {
+      basePrice = basePrice * 1.5;
+    } else if (selectedSeatingType === 'Meeting Room') {
+      basePrice = basePrice * 2;
+    }
+    return Math.round(basePrice * selectedMembers);
+  };
+
+  const handleContinue = () => {
+    Alert.alert(
+      'Booking Confirmation',
+      `Booking ${workspace.name} for ${selectedMembers} member(s) on ${selectedDate}. Total: ₹${calculatePrice()}`
+    );
+  };
+
+  return (
+    <View style={styles.container}>
+      {/* Header */}
+      <SafeAreaView style={styles.safeAreaHeader}>
+        <View style={styles.header}>
+          <TouchableOpacity style={styles.backButton} onPress={onBack}>
+            <Ionicons name="arrow-back" size={24} color={Colors.text.primary} />
+          </TouchableOpacity>
+          <Text style={styles.headerTitle}>Select Dates & Members</Text>
+          <View style={styles.creditsContainer}>
+            <Ionicons name="card" size={16} color={Colors.primary} />
+            <Text style={styles.creditsText}>0 credits</Text>
+          </View>
+        </View>
+      </SafeAreaView>
+
+      <ScrollView style={styles.scrollContainer} showsVerticalScrollIndicator={false}>
+        {/* Offers Section */}
+        <View style={styles.offersSection}>
+          <Text style={styles.sectionTitle}>Offers at this workspace</Text>
+          <View style={styles.offerCard}>
+            <View style={styles.offerIcon}>
+              <Ionicons name="pricetag" size={20} color={Colors.success} />
+            </View>
+            <View style={styles.offerContent}>
+              <Text style={styles.offerText}>
+                Get <Text style={styles.offerHighlight}>20% off</Text> on Premium {workspaceType} Booking using coupon{' '}
+                <Text style={styles.offerCode}>TRYPD20</Text>
+              </Text>
+            </View>
+            <View style={styles.offerRating}>
+              <Text style={styles.ratingText}>4/5</Text>
+              <View style={styles.ratingStars}>
+                {[1, 2, 3, 4].map((star) => (
+                  <Ionicons key={star} name="star" size={12} color={Colors.warning} />
+                ))}
+                <Ionicons name="star-outline" size={12} color={Colors.text.light} />
+              </View>
+            </View>
+          </View>
+        </View>
+
+        {/* Select Date Section */}
+        <TouchableOpacity 
+          style={styles.sectionCard}
+          onPress={() => setShowDatePicker(!showDatePicker)}
+        >
+          <View style={styles.sectionHeader}>
+            <Ionicons name="calendar" size={24} color={Colors.primary} />
+            <View style={styles.sectionContent}>
+              <Text style={styles.sectionLabel}>Select Date(s)</Text>
+              <Text style={styles.sectionSubtext}>You can select multiple dates</Text>
+              <Text style={styles.sectionValue}>Date(s) | {selectedDate}</Text>
+            </View>
+            <Ionicons name="chevron-forward" size={20} color={Colors.text.secondary} />
+          </View>
+        </TouchableOpacity>
+
+        {showDatePicker && (
+          <View style={styles.pickerContainer}>
+            {dateOptions.map((date) => (
+              <TouchableOpacity
+                key={date}
+                style={[
+                  styles.pickerOption,
+                  selectedDate === date && styles.selectedPickerOption,
+                ]}
+                onPress={() => {
+                  setSelectedDate(date);
+                  setShowDatePicker(false);
+                }}
+              >
+                <Text
+                  style={[
+                    styles.pickerOptionText,
+                    selectedDate === date && styles.selectedPickerText,
+                  ]}
+                >
+                  {date}
+                </Text>
+              </TouchableOpacity>
+            ))}
+          </View>
+        )}
+
+        {/* Add Members Section */}
+        <TouchableOpacity 
+          style={styles.sectionCard}
+          onPress={() => setShowMembersPicker(!showMembersPicker)}
+        >
+          <View style={styles.sectionHeader}>
+            <Ionicons name="people" size={24} color={Colors.primary} />
+            <View style={styles.sectionContent}>
+              <Text style={styles.sectionLabel}>Add Members</Text>
+              <Text style={styles.sectionSubtext}>You can add upto 7 members</Text>
+              <Text style={styles.sectionValue}>Members | {selectedMembers} (Self)</Text>
+            </View>
+            <Ionicons name="chevron-forward" size={20} color={Colors.text.secondary} />
+          </View>
+        </TouchableOpacity>
+
+        {showMembersPicker && (
+          <View style={styles.pickerContainer}>
+            {memberOptions.map((members) => (
+              <TouchableOpacity
+                key={members}
+                style={[
+                  styles.pickerOption,
+                  selectedMembers === members && styles.selectedPickerOption,
+                ]}
+                onPress={() => {
+                  setSelectedMembers(members);
+                  setShowMembersPicker(false);
+                }}
+              >
+                <Text
+                  style={[
+                    styles.pickerOptionText,
+                    selectedMembers === members && styles.selectedPickerText,
+                  ]}
+                >
+                  {members} {members === 1 ? '(Self)' : 'members'}
+                </Text>
+              </TouchableOpacity>
+            ))}
+          </View>
+        )}
+
+        {/* Seating Type Section */}
+        <TouchableOpacity 
+          style={styles.sectionCard}
+          onPress={() => setShowSeatingPicker(!showSeatingPicker)}
+        >
+          <View style={styles.sectionHeader}>
+            <Ionicons name="desktop" size={24} color={Colors.primary} />
+            <View style={styles.sectionContent}>
+              <Text style={styles.sectionLabel}>Seating Type</Text>
+              <Text style={styles.sectionSubtext}>Only 1 seating type available at this workspace</Text>
+              <Text style={styles.sectionValue}>Seating Type | {selectedSeatingType}</Text>
+            </View>
+            <Ionicons name="chevron-forward" size={20} color={Colors.text.secondary} />
+          </View>
+        </TouchableOpacity>
+
+        {showSeatingPicker && (
+          <View style={styles.pickerContainer}>
+            {seatingOptions.map((seating) => (
+              <TouchableOpacity
+                key={seating}
+                style={[
+                  styles.pickerOption,
+                  selectedSeatingType === seating && styles.selectedPickerOption,
+                ]}
+                onPress={() => {
+                  setSelectedSeatingType(seating);
+                  setShowSeatingPicker(false);
+                }}
+              >
+                <Text
+                  style={[
+                    styles.pickerOptionText,
+                    selectedSeatingType === seating && styles.selectedPickerText,
+                  ]}
+                >
+                  {seating}
+                </Text>
+              </TouchableOpacity>
+            ))}
+          </View>
+        )}
+
+        {/* Workspace Info */}
+        <View style={styles.workspaceInfo}>
+          <Text style={styles.workspaceName}>{workspace.name}</Text>
+          <View style={styles.workspaceDetails}>
+            <Ionicons name="time-outline" size={16} color={Colors.text.secondary} />
+            <Text style={styles.workspaceDetailText}>9:00 am - 9:00 pm (Mon to Sat)</Text>
+          </View>
+          <View style={styles.workspaceDetails}>
+            <Ionicons name="time-outline" size={16} color={Colors.text.secondary} />
+            <Text style={styles.workspaceDetailText}>Closed (Sun)</Text>
+          </View>
+        </View>
+
+        {/* Cancellation Policy */}
+        <View style={styles.policySection}>
+          <Text style={styles.policyTitle}>Cancellation Policy</Text>
+          <View style={styles.policyContent}>
+            <Ionicons name="time-outline" size={16} color={Colors.text.secondary} />
+            <Text style={styles.policyText}>
+              You can cancel your booking before 1 hour of workspace opening time.
+            </Text>
+          </View>
+          <TouchableOpacity style={styles.readMoreButton}>
+            <Text style={styles.readMoreText}>Read More</Text>
+            <Ionicons name="chevron-forward" size={16} color={Colors.primary} />
+          </TouchableOpacity>
+        </View>
+      </ScrollView>
+
+      {/* Bottom Section */}
+      <View style={styles.bottomSection}>
+        <View style={styles.priceSection}>
+          <View style={styles.priceRow}>
+            <Text style={styles.priceLabel}>Date(s), Member(s)</Text>
+            <View style={styles.priceIcons}>
+              <Ionicons name="calendar" size={16} color={Colors.text.secondary} />
+              <Text style={styles.priceValue}>1</Text>
+              <Ionicons name="people" size={16} color={Colors.text.secondary} />
+              <Text style={styles.priceValue}>1</Text>
+            </View>
+          </View>
+          <View style={styles.priceRow}>
+            <Text style={styles.priceLabelLarge}>Price (credits/day/₹)</Text>
+            <Text style={styles.priceAmount}>{calculatePrice()}</Text>
+          </View>
+        </View>
+        <TouchableOpacity style={styles.continueButton} onPress={handleContinue}>
+          <Text style={styles.continueButtonText}>Continue</Text>
+        </TouchableOpacity>
+      </View>
+    </View>
+  );
+};
+
+const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+    backgroundColor: Colors.background,
+  },
+  safeAreaHeader: {
+    backgroundColor: Colors.white,
+    elevation: 2,
+    shadowColor: Colors.black,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+  },
+  header: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: Spacing.md,
+    paddingVertical: Spacing.md,
+    backgroundColor: Colors.white,
+  },
+  backButton: {
+    padding: Spacing.xs,
+  },
+  headerTitle: {
+    fontSize: FontSizes.lg,
+    fontWeight: FontWeights.semibold,
+    color: Colors.text.primary,
+    flex: 1,
+    textAlign: 'center',
+  },
+  creditsContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: Colors.gray[100],
+    paddingHorizontal: Spacing.sm,
+    paddingVertical: Spacing.xs,
+    borderRadius: BorderRadius.md,
+  },
+  creditsText: {
+    fontSize: FontSizes.sm,
+    color: Colors.primary,
+    marginLeft: 4,
+    fontWeight: FontWeights.medium,
+  },
+  scrollContainer: {
+    flex: 1,
+  },
+  offersSection: {
+    padding: Spacing.md,
+    backgroundColor: Colors.white,
+    marginBottom: Spacing.sm,
+  },
+  sectionTitle: {
+    fontSize: FontSizes.md,
+    fontWeight: FontWeights.semibold,
+    color: Colors.text.primary,
+    marginBottom: Spacing.md,
+  },
+  offerCard: {
+    flexDirection: 'row',
+    backgroundColor: Colors.success + '10',
+    borderRadius: BorderRadius.md,
+    padding: Spacing.md,
+    alignItems: 'center',
+  },
+  offerIcon: {
+    marginRight: Spacing.sm,
+  },
+  offerContent: {
+    flex: 1,
+  },
+  offerText: {
+    fontSize: FontSizes.sm,
+    color: Colors.text.primary,
+    lineHeight: 20,
+  },
+  offerHighlight: {
+    fontWeight: FontWeights.bold,
+    color: Colors.success,
+  },
+  offerCode: {
+    fontWeight: FontWeights.bold,
+    color: Colors.primary,
+  },
+  offerRating: {
+    alignItems: 'center',
+    marginLeft: Spacing.sm,
+  },
+  ratingText: {
+    fontSize: FontSizes.sm,
+    fontWeight: FontWeights.medium,
+    color: Colors.text.primary,
+    marginBottom: 4,
+  },
+  ratingStars: {
+    flexDirection: 'row',
+  },
+  sectionCard: {
+    backgroundColor: Colors.white,
+    marginBottom: Spacing.sm,
+    paddingHorizontal: Spacing.md,
+    paddingVertical: Spacing.lg,
+  },
+  sectionHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  sectionContent: {
+    flex: 1,
+    marginLeft: Spacing.md,
+  },
+  sectionLabel: {
+    fontSize: FontSizes.md,
+    fontWeight: FontWeights.semibold,
+    color: Colors.primary,
+    marginBottom: 2,
+  },
+  sectionSubtext: {
+    fontSize: FontSizes.sm,
+    color: Colors.text.secondary,
+    marginBottom: Spacing.sm,
+  },
+  sectionValue: {
+    fontSize: FontSizes.sm,
+    color: Colors.text.primary,
+    fontWeight: FontWeights.medium,
+  },
+  pickerContainer: {
+    backgroundColor: Colors.white,
+    marginBottom: Spacing.sm,
+    paddingHorizontal: Spacing.md,
+  },
+  pickerOption: {
+    paddingVertical: Spacing.md,
+    borderBottomWidth: 1,
+    borderBottomColor: Colors.border,
+  },
+  selectedPickerOption: {
+    backgroundColor: Colors.primary + '10',
+  },
+  pickerOptionText: {
+    fontSize: FontSizes.md,
+    color: Colors.text.primary,
+  },
+  selectedPickerText: {
+    color: Colors.primary,
+    fontWeight: FontWeights.medium,
+  },
+  workspaceInfo: {
+    backgroundColor: Colors.white,
+    padding: Spacing.md,
+    marginBottom: Spacing.sm,
+  },
+  workspaceName: {
+    fontSize: FontSizes.lg,
+    fontWeight: FontWeights.bold,
+    color: Colors.text.primary,
+    marginBottom: Spacing.md,
+  },
+  workspaceDetails: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: Spacing.xs,
+  },
+  workspaceDetailText: {
+    fontSize: FontSizes.sm,
+    color: Colors.text.secondary,
+    marginLeft: Spacing.xs,
+  },
+  policySection: {
+    backgroundColor: Colors.white,
+    padding: Spacing.md,
+    marginBottom: Spacing.xl,
+  },
+  policyTitle: {
+    fontSize: FontSizes.md,
+    fontWeight: FontWeights.semibold,
+    color: Colors.text.primary,
+    marginBottom: Spacing.md,
+  },
+  policyContent: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    marginBottom: Spacing.md,
+  },
+  policyText: {
+    fontSize: FontSizes.sm,
+    color: Colors.text.secondary,
+    marginLeft: Spacing.xs,
+    flex: 1,
+    lineHeight: 20,
+  },
+  readMoreButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  readMoreText: {
+    fontSize: FontSizes.sm,
+    color: Colors.primary,
+    fontWeight: FontWeights.medium,
+    marginRight: 4,
+  },
+  bottomSection: {
+    backgroundColor: Colors.white,
+    borderTopWidth: 1,
+    borderTopColor: Colors.border,
+    paddingHorizontal: Spacing.md,
+    paddingVertical: Spacing.md,
+  },
+  priceSection: {
+    marginBottom: Spacing.md,
+  },
+  priceRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: Spacing.xs,
+  },
+  priceLabel: {
+    fontSize: FontSizes.sm,
+    color: Colors.text.secondary,
+  },
+  priceLabelLarge: {
+    fontSize: FontSizes.md,
+    color: Colors.text.secondary,
+  },
+  priceIcons: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  priceValue: {
+    fontSize: FontSizes.sm,
+    color: Colors.text.secondary,
+    marginLeft: 4,
+    marginRight: Spacing.sm,
+  },
+  priceAmount: {
+    fontSize: FontSizes.xl,
+    fontWeight: FontWeights.bold,
+    color: Colors.text.primary,
+  },
+  continueButton: {
+    backgroundColor: Colors.primary,
+    paddingVertical: Spacing.md,
+    borderRadius: BorderRadius.md,
+    alignItems: 'center',
+  },
+  continueButtonText: {
+    color: Colors.white,
+    fontSize: FontSizes.md,
+    fontWeight: FontWeights.semibold,
+  },
+});

@@ -1,6 +1,7 @@
 import React from 'react';
 import {
   View,
+  Text,
   TextInput,
   StyleSheet,
   TouchableOpacity,
@@ -13,6 +14,8 @@ interface SearchBarProps {
   value: string;
   onChangeText: (text: string) => void;
   onSearchPress?: () => void;
+  onPress?: () => void;
+  editable?: boolean;
 }
 
 export const SearchBar: React.FC<SearchBarProps> = ({
@@ -20,10 +23,37 @@ export const SearchBar: React.FC<SearchBarProps> = ({
   value,
   onChangeText,
   onSearchPress,
+  onPress,
+  editable = true,
 }) => {
+  const handlePress = () => {
+    if (onPress) {
+      onPress();
+    }
+  };
+
+  if (onPress && !editable) {
+    // Render as clickable, non-editable
+    return (
+      <View style={styles.container}>
+        <TouchableOpacity style={styles.searchContainer} onPress={handlePress}>
+          <Ionicons
+            name="search"
+            size={20}
+            color={Colors.text.secondary}
+            style={styles.searchIcon}
+          />
+          <Text style={styles.placeholderText}>
+            {placeholder}
+          </Text>
+        </TouchableOpacity>
+      </View>
+    );
+  }
+
   return (
     <View style={styles.container}>
-      <View style={styles.searchContainer}>
+      <TouchableOpacity style={styles.searchContainer} onPress={handlePress} disabled={!onPress}>
         <Ionicons
           name="search"
           size={20}
@@ -38,8 +68,9 @@ export const SearchBar: React.FC<SearchBarProps> = ({
           onChangeText={onChangeText}
           returnKeyType="search"
           onSubmitEditing={onSearchPress}
+          editable={editable}
         />
-      </View>
+      </TouchableOpacity>
     </View>
   );
 };
@@ -64,5 +95,11 @@ const styles = StyleSheet.create({
     flex: 1,
     fontSize: FontSizes.md,
     color: Colors.text.primary,
+  },
+  placeholderText: {
+    flex: 1,
+    fontSize: FontSizes.md,
+    color: Colors.text.light,
+    paddingVertical: Spacing.xs,
   },
 });
