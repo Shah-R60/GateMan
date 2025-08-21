@@ -11,6 +11,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { Colors, Spacing, FontSizes, FontWeights, BorderRadius } from '../constants/theme';
 import { Workspace } from '../types';
+import { DateSelectionScreen } from './DateSelectionScreen';
 
 interface BookingScreenProps {
   workspace: Workspace;
@@ -21,20 +22,13 @@ export const BookingScreen: React.FC<BookingScreenProps> = ({
   workspace,
   onBack,
 }) => {
-  const [selectedDate, setSelectedDate] = useState('20 Aug (Today)');
+  const [selectedDate, setSelectedDate] = useState<string>('');
+  const [selectedDateCount, setSelectedDateCount] = useState<number>(0);
   const [selectedMembers, setSelectedMembers] = useState(1);
   const [selectedSeatingType, setSelectedSeatingType] = useState('Open Desk');
-  const [showDatePicker, setShowDatePicker] = useState(false);
   const [showMembersPicker, setShowMembersPicker] = useState(false);
   const [showSeatingPicker, setShowSeatingPicker] = useState(false);
-
-  const dateOptions = [
-    '20 Aug (Today)',
-    '21 Aug (Tomorrow)',
-    '22 Aug (Thu)',
-    '23 Aug (Fri)',
-    '24 Aug (Sat)',
-  ];
+  const [showDateSelection, setShowDateSelection] = useState(false);
 
   const memberOptions = [1, 2, 3, 4, 5, 6, 7];
   const seatingOptions = ['Open Desk', 'Private Desk', 'Meeting Room'];
@@ -57,15 +51,40 @@ export const BookingScreen: React.FC<BookingScreenProps> = ({
     } else if (selectedSeatingType === 'Meeting Room') {
       basePrice = basePrice * 2;
     }
-    return Math.round(basePrice * selectedMembers);
+    const totalDateCount = selectedDateCount || 0;
+    return Math.round(basePrice * selectedMembers * totalDateCount);
   };
 
   const handleContinue = () => {
+    if (selectedDateCount === 0) {
+      Alert.alert('No dates selected', 'Please select at least one date to continue.');
+      return;
+    }
+    
+    const dateText = selectedDateCount === 1 ? selectedDate : `${selectedDateCount} dates selected`;
     Alert.alert(
       'Booking Confirmation',
-      `Booking ${workspace.name} for ${selectedMembers} member(s) on ${selectedDate}. Total: ₹${calculatePrice()}`
+      `Booking ${workspace.name} for ${selectedMembers} member(s) on ${dateText}. Total: ₹${calculatePrice()}`
     );
   };
+
+  const handleDateSelection = (dates: string, count: number) => {
+    setSelectedDate(dates);
+    setSelectedDateCount(count);
+    setShowDateSelection(false);
+  };
+
+  // Show DateSelectionScreen if active
+  if (showDateSelection) {
+    return (
+      <DateSelectionScreen
+        workspace={workspace}
+        onBack={() => setShowDateSelection(false)}
+        onDateSelect={handleDateSelection}
+        selectedDate={selectedDate}
+      />
+    );
+  }
 
   return (
     <View style={styles.container}>
@@ -112,45 +131,21 @@ export const BookingScreen: React.FC<BookingScreenProps> = ({
         {/* Select Date Section */}
         <TouchableOpacity 
           style={styles.sectionCard}
-          onPress={() => setShowDatePicker(!showDatePicker)}
+          onPress={() => setShowDateSelection(true)}
         >
           <View style={styles.sectionHeader}>
             <Ionicons name="calendar" size={24} color={Colors.primary} />
             <View style={styles.sectionContent}>
               <Text style={styles.sectionLabel}>Select Date(s)</Text>
               <Text style={styles.sectionSubtext}>You can select multiple dates</Text>
-              <Text style={styles.sectionValue}>Date(s) | {selectedDate}</Text>
+              <Text style={styles.sectionValue}>
+                Date(s) | {selectedDate || 'No dates selected'}
+                {selectedDateCount > 0 && ` (${selectedDateCount} date${selectedDateCount > 1 ? 's' : ''})`}
+              </Text>
             </View>
             <Ionicons name="chevron-forward" size={20} color={Colors.text.secondary} />
           </View>
         </TouchableOpacity>
-
-        {showDatePicker && (
-          <View style={styles.pickerContainer}>
-            {dateOptions.map((date) => (
-              <TouchableOpacity
-                key={date}
-                style={[
-                  styles.pickerOption,
-                  selectedDate === date && styles.selectedPickerOption,
-                ]}
-                onPress={() => {
-                  setSelectedDate(date);
-                  setShowDatePicker(false);
-                }}
-              >
-                <Text
-                  style={[
-                    styles.pickerOptionText,
-                    selectedDate === date && styles.selectedPickerText,
-                  ]}
-                >
-                  {date}
-                </Text>
-              </TouchableOpacity>
-            ))}
-          </View>
-        )}
 
         {/* Add Members Section */}
         <TouchableOpacity 
@@ -274,9 +269,9 @@ export const BookingScreen: React.FC<BookingScreenProps> = ({
             <Text style={styles.priceLabel}>Date(s), Member(s)</Text>
             <View style={styles.priceIcons}>
               <Ionicons name="calendar" size={16} color={Colors.text.secondary} />
-              <Text style={styles.priceValue}>1</Text>
+              <Text style={styles.priceValue}>{selectedDateCount || 0}</Text>
               <Ionicons name="people" size={16} color={Colors.text.secondary} />
-              <Text style={styles.priceValue}>1</Text>
+              <Text style={styles.priceValue}>{selectedMembers}</Text>
             </View>
           </View>
           <View style={styles.priceRow}>
