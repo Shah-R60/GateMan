@@ -8,3 +8,7 @@ export { WelcomeOffers } from './home/WelcomeOffers';
 export { ServiceTypeSelector } from './home/ServiceTypeSelector';
 export { WorkspaceCard } from './home/WorkspaceCard';
 export { WorkspaceList } from './home/WorkspaceList';
+
+// Other components
+export { FilterModal } from './FilterModal';
+export { DatePicker } from './DatePicker';

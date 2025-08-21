@@ -14,7 +14,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { Colors, Spacing, FontSizes, FontWeights, BorderRadius } from '../constants/theme';
 import { Location, Workspace } from '../types';
-import { FilterModal } from '../components/FilterModal';
+import { FilterModal, DatePicker } from '../components';
 import { WorkspaceSearchScreen } from './WorkspaceSearchScreen';
 
 interface DeskScreenProps {
@@ -25,14 +25,6 @@ interface DeskScreenProps {
   onBookPress?: (workspace: Workspace) => void;
 }
 
-const sortOptions = [
-  'Popularity',
-  'Price (L-H)',
-  'Price (H-L)',
-  'Distance',
-  'Rating',
-];
-
 export const DeskScreen: React.FC<DeskScreenProps> = ({
   selectedLocation,
   selectedSubLocation,
@@ -41,9 +33,7 @@ export const DeskScreen: React.FC<DeskScreenProps> = ({
   onBookPress,
 }) => {
   const [searchQuery, setSearchQuery] = useState('');
-  const [selectedSort, setSelectedSort] = useState('Popularity');
-  const [showSortOptions, setShowSortOptions] = useState(false);
-  const [selectedDate, setSelectedDate] = useState('Today (19 Aug)');
+  const [selectedDate, setSelectedDate] = useState('Tomorrow (21 Aug)');
   const [showDatePicker, setShowDatePicker] = useState(false);
   const [showFilterModal, setShowFilterModal] = useState(false);
   const [showWorkspaceSearch, setShowWorkspaceSearch] = useState(false);
@@ -95,11 +85,6 @@ export const DeskScreen: React.FC<DeskScreenProps> = ({
       ],
     },
   ];
-
-  const handleSortSelect = (option: string) => {
-    setSelectedSort(option);
-    setShowSortOptions(false);
-  };
 
   const handleDateSelect = (date: string) => {
     setSelectedDate(date);
@@ -220,74 +205,36 @@ export const DeskScreen: React.FC<DeskScreenProps> = ({
           </TouchableOpacity>
         </View>
 
-        {/* Filter and Sort Row */}
+        {/* Filter and Booking Date Row */}
         <View style={styles.filterSortContainer}>
-          <TouchableOpacity style={styles.filterButton} onPress={handleFiltersPress}>
-            <Ionicons name="filter" size={16} color={Colors.text.primary} />
-            <Text style={styles.filterText}>Filters</Text>
-          </TouchableOpacity>
-
-          <TouchableOpacity 
-            style={styles.sortButton} 
-            onPress={() => setShowSortOptions(!showSortOptions)}
+          <ScrollView 
+            horizontal 
+            showsHorizontalScrollIndicator={false}
+            contentContainerStyle={styles.horizontalScrollContent}
           >
-            <Ionicons name="swap-vertical" size={16} color={Colors.text.primary} />
-            <Text style={styles.sortText}>Sort</Text>
-            <Text style={styles.sortOption}>{selectedSort}</Text>
-            <Ionicons name="chevron-down" size={16} color={Colors.text.secondary} />
-          </TouchableOpacity>
+            {/* Booking Date Selector */}
+            <TouchableOpacity 
+              style={styles.bookingDateButton} 
+              onPress={() => setShowDatePicker(true)}
+            >
+              <Ionicons name="calendar-outline" size={12} color={Colors.text.primary} />
+              <View style={styles.bookingDateContent}>
+                <Text style={styles.bookingDateText}>Booking Date</Text>
+                <Text style={styles.bookingDateValue}>{selectedDate}</Text>
+              </View>
+              <Ionicons name="chevron-down" size={12} color={Colors.text.secondary} />
+            </TouchableOpacity>
 
-          <TouchableOpacity style={styles.mapButton} onPress={handleMapPress}>
-            <Ionicons name="map" size={16} color={Colors.text.primary} />
-            <Text style={styles.mapText}>Map</Text>
-          </TouchableOpacity>
-        </View>
+            <TouchableOpacity style={styles.filterButton} onPress={handleFiltersPress}>
+              <Ionicons name="filter" size={14} color={Colors.text.primary} />
+              <Text style={styles.filterText}>Filters</Text>
+            </TouchableOpacity>
 
-        {/* Sort Options Dropdown */}
-        {showSortOptions && (
-          <View style={styles.sortDropdown}>
-            {sortOptions.map((option) => (
-              <TouchableOpacity
-                key={option}
-                style={styles.sortOption}
-                onPress={() => handleSortSelect(option)}
-              >
-                <Text
-                  style={[
-                    styles.sortOptionText,
-                    selectedSort === option && styles.selectedSortText,
-                  ]}
-                >
-                  {option}
-                </Text>
-              </TouchableOpacity>
-            ))}
-          </View>
-        )}
-
-        {/* Booking Card */}
-        <View style={styles.bookingCard}>
-          <Image
-            source={{ uri: 'https://images.unsplash.com/photo-1497366216548-37526070297c?w=600' }}
-            style={styles.bookingCardImage}
-            resizeMode="cover"
-          />
-          <View style={styles.bookingCardOverlay}>
-            <View style={styles.bookingCardContent}>
-              <Text style={styles.bookingDateLabel}>Booking Date</Text>
-              <TouchableOpacity 
-                style={styles.dateSelector}
-                onPress={() => setShowDatePicker(!showDatePicker)}
-              >
-                <Text style={styles.dateText}>{selectedDate}</Text>
-                <Ionicons name="chevron-down" size={16} color={Colors.white} />
-              </TouchableOpacity>
-              
-              <TouchableOpacity style={styles.viewWorkspacesButton} onPress={handleViewWorkspaces}>
-                <Text style={styles.viewWorkspacesText}>View Workspaces</Text>
-              </TouchableOpacity>
-            </View>
-          </View>
+            <TouchableOpacity style={styles.mapButton} onPress={handleMapPress}>
+              <Ionicons name="map-outline" size={14} color={Colors.text.primary} />
+              <Text style={styles.mapText}>Map</Text>
+            </TouchableOpacity>
+          </ScrollView>
         </View>
 
         {/* Offer Banner */}
@@ -383,6 +330,13 @@ export const DeskScreen: React.FC<DeskScreenProps> = ({
         </View>
       </ScrollView>
 
+      <DatePicker
+        visible={showDatePicker}
+        onClose={() => setShowDatePicker(false)}
+        onDateSelect={handleDateSelect}
+        selectedDate={selectedDate}
+      />
+
       <FilterModal
         visible={showFilterModal}
         onClose={() => setShowFilterModal(false)}
@@ -455,13 +409,42 @@ const styles = StyleSheet.create({
     paddingVertical: Spacing.xs,
   },
   filterSortContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
     paddingHorizontal: Spacing.md,
     paddingVertical: Spacing.sm,
     backgroundColor: Colors.white,
     borderBottomWidth: 1,
     borderBottomColor: Colors.border,
+  },
+  horizontalScrollContent: {
+    alignItems: 'center',
+    paddingRight: Spacing.md,
+    flexDirection: 'row',
+  },
+  bookingDateButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: Spacing.sm,
+    paddingVertical: Spacing.sm,
+    borderWidth: 1,
+    borderColor: Colors.border,
+    borderRadius: BorderRadius.md,
+    marginRight: Spacing.sm,
+    width: 120,
+    height: 44,
+  },
+  bookingDateText: {
+    fontSize: 9,
+    color: Colors.text.secondary,
+    marginBottom: 1,
+  },
+  bookingDateContent: {
+    flex: 1,
+    marginLeft: Spacing.xs,
+  },
+  bookingDateValue: {
+    fontSize: 10,
+    color: Colors.text.primary,
+    fontWeight: FontWeights.medium,
   },
   filterButton: {
     flexDirection: 'row',
@@ -472,32 +455,12 @@ const styles = StyleSheet.create({
     borderColor: Colors.border,
     borderRadius: BorderRadius.md,
     marginRight: Spacing.sm,
+    height: 44,
   },
   filterText: {
     marginLeft: Spacing.xs,
     fontSize: FontSizes.sm,
     color: Colors.text.primary,
-  },
-  sortButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: Spacing.md,
-    paddingVertical: Spacing.sm,
-    borderWidth: 1,
-    borderColor: Colors.border,
-    borderRadius: BorderRadius.md,
-    marginRight: Spacing.sm,
-    flex: 1,
-  },
-  sortText: {
-    marginLeft: Spacing.xs,
-    fontSize: FontSizes.sm,
-    color: Colors.text.primary,
-  },
-  sortOption: {
-    marginLeft: Spacing.xs,
-    fontSize: FontSizes.sm,
-    color: Colors.text.secondary,
   },
   mapButton: {
     flexDirection: 'row',
@@ -507,28 +470,12 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: Colors.border,
     borderRadius: BorderRadius.md,
+    height: 44,
   },
   mapText: {
     marginLeft: Spacing.xs,
     fontSize: FontSizes.sm,
     color: Colors.text.primary,
-  },
-  sortDropdown: {
-    backgroundColor: Colors.white,
-    marginHorizontal: Spacing.md,
-    borderWidth: 1,
-    borderColor: Colors.border,
-    borderRadius: BorderRadius.md,
-    marginTop: Spacing.xs,
-  },
-  sortOptionText: {
-    padding: Spacing.md,
-    fontSize: FontSizes.sm,
-    color: Colors.text.primary,
-  },
-  selectedSortText: {
-    color: Colors.primary,
-    fontWeight: FontWeights.medium,
   },
   bookingCard: {
     margin: Spacing.md,
