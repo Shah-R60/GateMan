@@ -12,6 +12,18 @@ import { Ionicons } from '@expo/vector-icons';
 import { Colors, Spacing, FontSizes, FontWeights, BorderRadius } from '../constants/theme';
 import { Workspace } from '../types';
 import { DateSelectionScreen } from './DateSelectionScreen';
+import { MembersScreen } from './MembersScreen';
+import { CancellationPolicyScreen } from './CancellationPolicyScreen';
+import { CreditsScreen } from './CreditsScreen';
+import { ConfirmBookingScreen } from './ConfirmBookingScreen';
+
+interface Guest {
+  id: string;
+  name: string;
+  email: string;
+  phone: string;
+  isSelected: boolean;
+}
 
 interface BookingScreenProps {
   workspace: Workspace;
@@ -24,14 +36,30 @@ export const BookingScreen: React.FC<BookingScreenProps> = ({
 }) => {
   const [selectedDate, setSelectedDate] = useState<string>('');
   const [selectedDateCount, setSelectedDateCount] = useState<number>(0);
-  const [selectedMembers, setSelectedMembers] = useState(1);
+  const [selectedMembers, setSelectedMembers] = useState<Guest[]>([
+    {
+      id: 'self',
+      name: 'Shah Saurabh',
+      email: 'shahrahul3600@gmail.com',
+      phone: '7283881124',
+      isSelected: true,
+    }
+  ]);
   const [selectedSeatingType, setSelectedSeatingType] = useState('Open Desk');
   const [showMembersPicker, setShowMembersPicker] = useState(false);
   const [showSeatingPicker, setShowSeatingPicker] = useState(false);
   const [showDateSelection, setShowDateSelection] = useState(false);
+  const [showMembersScreen, setShowMembersScreen] = useState(false);
+  const [showCancellationPolicy, setShowCancellationPolicy] = useState(false);
+  const [showCreditsScreen, setShowCreditsScreen] = useState(false);
+  const [showConfirmBooking, setShowConfirmBooking] = useState(false);
 
   const memberOptions = [1, 2, 3, 4, 5, 6, 7];
   const seatingOptions = ['Open Desk', 'Private Desk', 'Meeting Room'];
+
+  const getSelectedMemberCount = () => {
+    return selectedMembers.filter(member => member.isSelected).length;
+  };
 
   const getWorkspaceType = () => {
     // Determine if this is a desk or meeting room based on workspace data
@@ -52,7 +80,8 @@ export const BookingScreen: React.FC<BookingScreenProps> = ({
       basePrice = basePrice * 2;
     }
     const totalDateCount = selectedDateCount || 0;
-    return Math.round(basePrice * selectedMembers * totalDateCount);
+    const memberCount = getSelectedMemberCount();
+    return Math.round(basePrice * memberCount * totalDateCount);
   };
 
   const handleContinue = () => {
@@ -61,11 +90,7 @@ export const BookingScreen: React.FC<BookingScreenProps> = ({
       return;
     }
     
-    const dateText = selectedDateCount === 1 ? selectedDate : `${selectedDateCount} dates selected`;
-    Alert.alert(
-      'Booking Confirmation',
-      `Booking ${workspace.name} for ${selectedMembers} member(s) on ${dateText}. Total: ₹${calculatePrice()}`
-    );
+    setShowConfirmBooking(true);
   };
 
   const handleDateSelection = (dates: string, count: number) => {
@@ -73,6 +98,56 @@ export const BookingScreen: React.FC<BookingScreenProps> = ({
     setSelectedDateCount(count);
     setShowDateSelection(false);
   };
+
+  const handleMembersUpdate = (members: Guest[]) => {
+    setSelectedMembers(members);
+    setShowMembersScreen(false);
+  };
+
+  // Show ConfirmBookingScreen if active
+  if (showConfirmBooking) {
+    return (
+      <ConfirmBookingScreen
+        onBack={() => setShowConfirmBooking(false)}
+        workspace={workspace}
+        selectedDate={selectedDate}
+        selectedDateCount={selectedDateCount}
+        selectedMembers={selectedMembers}
+        selectedSeatingType={selectedSeatingType}
+        totalPrice={calculatePrice()}
+      />
+    );
+  }
+
+  // Show CreditsScreen if active
+  if (showCreditsScreen) {
+    return (
+      <CreditsScreen
+        onBack={() => setShowCreditsScreen(false)}
+      />
+    );
+  }
+
+  // Show CancellationPolicyScreen if active
+  if (showCancellationPolicy) {
+    return (
+      <CancellationPolicyScreen
+        onBack={() => setShowCancellationPolicy(false)}
+        workspaceName={workspace.name}
+      />
+    );
+  }
+
+  // Show MembersScreen if active
+  if (showMembersScreen) {
+    return (
+      <MembersScreen
+        onBack={() => setShowMembersScreen(false)}
+        onConfirm={handleMembersUpdate}
+        initialMembers={selectedMembers.filter(member => member.id !== 'self')}
+      />
+    );
+  }
 
   // Show DateSelectionScreen if active
   if (showDateSelection) {
@@ -95,10 +170,13 @@ export const BookingScreen: React.FC<BookingScreenProps> = ({
             <Ionicons name="arrow-back" size={24} color={Colors.text.primary} />
           </TouchableOpacity>
           <Text style={styles.headerTitle}>Select Dates & Members</Text>
-          <View style={styles.creditsContainer}>
+          <TouchableOpacity 
+            style={styles.creditsContainer}
+            onPress={() => setShowCreditsScreen(true)}
+          >
             <Ionicons name="card" size={16} color={Colors.primary} />
             <Text style={styles.creditsText}>0 credits</Text>
-          </View>
+          </TouchableOpacity>
         </View>
       </SafeAreaView>
 
@@ -150,45 +228,20 @@ export const BookingScreen: React.FC<BookingScreenProps> = ({
         {/* Add Members Section */}
         <TouchableOpacity 
           style={styles.sectionCard}
-          onPress={() => setShowMembersPicker(!showMembersPicker)}
+          onPress={() => setShowMembersScreen(true)}
         >
           <View style={styles.sectionHeader}>
             <Ionicons name="people" size={24} color={Colors.primary} />
             <View style={styles.sectionContent}>
               <Text style={styles.sectionLabel}>Add Members</Text>
               <Text style={styles.sectionSubtext}>You can add upto 7 members</Text>
-              <Text style={styles.sectionValue}>Members | {selectedMembers} (Self)</Text>
+              <Text style={styles.sectionValue}>
+                Members | {getSelectedMemberCount()} {getSelectedMemberCount() === 1 ? '(Self)' : 'selected'}
+              </Text>
             </View>
             <Ionicons name="chevron-forward" size={20} color={Colors.text.secondary} />
           </View>
         </TouchableOpacity>
-
-        {showMembersPicker && (
-          <View style={styles.pickerContainer}>
-            {memberOptions.map((members) => (
-              <TouchableOpacity
-                key={members}
-                style={[
-                  styles.pickerOption,
-                  selectedMembers === members && styles.selectedPickerOption,
-                ]}
-                onPress={() => {
-                  setSelectedMembers(members);
-                  setShowMembersPicker(false);
-                }}
-              >
-                <Text
-                  style={[
-                    styles.pickerOptionText,
-                    selectedMembers === members && styles.selectedPickerText,
-                  ]}
-                >
-                  {members} {members === 1 ? '(Self)' : 'members'}
-                </Text>
-              </TouchableOpacity>
-            ))}
-          </View>
-        )}
 
         {/* Seating Type Section */}
         <TouchableOpacity 
@@ -255,7 +308,10 @@ export const BookingScreen: React.FC<BookingScreenProps> = ({
               You can cancel your booking before 1 hour of workspace opening time.
             </Text>
           </View>
-          <TouchableOpacity style={styles.readMoreButton}>
+          <TouchableOpacity 
+            style={styles.readMoreButton}
+            onPress={() => setShowCancellationPolicy(true)}
+          >
             <Text style={styles.readMoreText}>Read More</Text>
             <Ionicons name="chevron-forward" size={16} color={Colors.primary} />
           </TouchableOpacity>
@@ -271,7 +327,7 @@ export const BookingScreen: React.FC<BookingScreenProps> = ({
               <Ionicons name="calendar" size={16} color={Colors.text.secondary} />
               <Text style={styles.priceValue}>{selectedDateCount || 0}</Text>
               <Ionicons name="people" size={16} color={Colors.text.secondary} />
-              <Text style={styles.priceValue}>{selectedMembers}</Text>
+              <Text style={styles.priceValue}>{getSelectedMemberCount()}</Text>
             </View>
           </View>
           <View style={styles.priceRow}>
