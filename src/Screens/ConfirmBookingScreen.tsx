@@ -11,6 +11,9 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { Colors, Spacing, FontSizes, FontWeights, BorderRadius } from '../constants/theme';
 import { Workspace } from '../types';
+import { CreditsScreen } from './CreditsScreen';
+import { BookingScreen } from './BookingScreen';
+import { PaymentScreen } from './PaymentScreen';
 
 const { width } = Dimensions.get('window');
 
@@ -42,7 +45,12 @@ export const ConfirmBookingScreen: React.FC<ConfirmBookingScreenProps> = ({
   totalPrice,
 }) => {
   const selectedMemberCount = selectedMembers.filter(member => member.isSelected).length;
-  
+
+  // Navigation state
+  const [showCreditsScreen, setShowCreditsScreen] = React.useState(false);
+  const [showBookingScreen, setShowBookingScreen] = React.useState(false);
+  const [showPaymentScreen, setShowPaymentScreen] = React.useState(false);
+
   const formatDate = () => {
     if (selectedDateCount === 1) {
       return selectedDate;
@@ -51,11 +59,32 @@ export const ConfirmBookingScreen: React.FC<ConfirmBookingScreenProps> = ({
   };
 
   const handleProceed = () => {
-    // Handle payment/booking logic here
-    console.log('Proceeding with booking...');
+    // Navigate to payment screen
+    setShowPaymentScreen(true);
   };
 
-  return (
+  // Conditional rendering for CreditsScreen
+  if (showCreditsScreen) {
+    // Replace with your actual CreditsScreen import/component
+    return <CreditsScreen onBack={() => setShowCreditsScreen(false)} />;
+  }
+
+  // Conditional rendering for BookingScreen
+  if (showBookingScreen) {
+    // Replace with your actual BookingScreen import/component
+    return <BookingScreen workspace={workspace} onBack={() => setShowBookingScreen(false)} />;
+  }
+
+  // Conditional rendering for PaymentScreen
+  if (showPaymentScreen) {
+    return (
+      <PaymentScreen
+        onBack={() => setShowPaymentScreen(false)}
+        bookingAmount={300}
+        totalPrice={totalPrice}
+      />
+    );
+  }  return (
     <View style={styles.container}>
       {/* Header */}
       <SafeAreaView style={styles.safeAreaHeader}>
@@ -64,7 +93,7 @@ export const ConfirmBookingScreen: React.FC<ConfirmBookingScreenProps> = ({
             <Ionicons name="arrow-back" size={24} color={Colors.text.primary} />
           </TouchableOpacity>
           <Text style={styles.headerTitle}>Confirm Booking</Text>
-          <TouchableOpacity style={styles.creditsContainer}>
+          <TouchableOpacity style={styles.creditsContainer} onPress={() => setShowCreditsScreen(true)}>
             <Ionicons name="card" size={16} color={Colors.primary} />
             <Text style={styles.creditsText}>0 credits</Text>
           </TouchableOpacity>
@@ -188,13 +217,13 @@ export const ConfirmBookingScreen: React.FC<ConfirmBookingScreenProps> = ({
           <Ionicons name="chevron-forward" size={20} color={Colors.text.secondary} />
         </TouchableOpacity>
 
-        {/* myHQ Assurance Section */}
+        {/* GateMan Assurance Section */}
         <View style={styles.assuranceSection}>
           <View style={styles.assuranceHeader}>
             <View style={styles.assuranceIconContainer}>
               <Ionicons name="shield-checkmark" size={20} color={Colors.primary} />
             </View>
-            <Text style={styles.assuranceTitle}>myHQ Assurance</Text>
+            <Text style={styles.assuranceTitle}>GateMan Assurance</Text>
             <TouchableOpacity style={styles.infoButton}>
               <Ionicons name="information-circle-outline" size={16} color={Colors.text.secondary} />
             </TouchableOpacity>
@@ -222,7 +251,7 @@ export const ConfirmBookingScreen: React.FC<ConfirmBookingScreenProps> = ({
         <View style={styles.summaryCard}>
           <View style={styles.summaryRow}>
             <Text style={styles.summaryLabel}>Date(s) & Member(s)</Text>
-            <TouchableOpacity style={styles.editButton}>
+            <TouchableOpacity style={styles.editButton} onPress={() => setShowBookingScreen(true)}>
               <Ionicons name="pencil" size={14} color={Colors.primary} />
               <Text style={styles.editText}>Edit</Text>
             </TouchableOpacity>
@@ -279,21 +308,21 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    paddingHorizontal: Spacing.lg,
-    paddingVertical: Spacing.lg,
+    paddingHorizontal: Spacing.md,
+    paddingVertical: Spacing.md,
     backgroundColor: Colors.white,
   },
   backButton: {
-    width: 40,
-    height: 40,
-    borderRadius: BorderRadius.md,
+    width: 36,
+    height: 36,
+    borderRadius: BorderRadius.sm,
     backgroundColor: Colors.gray[100],
     alignItems: 'center',
     justifyContent: 'center',
   },
   headerTitle: {
-    fontSize: FontSizes.xl,
-    fontWeight: FontWeights.bold,
+    fontSize: FontSizes.lg,
+    fontWeight: FontWeights.semibold,
     color: Colors.text.primary,
     flex: 1,
     textAlign: 'center',
@@ -301,30 +330,32 @@ const styles = StyleSheet.create({
   creditsContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: Colors.primary + '15',
+    backgroundColor: Colors.white,
     paddingHorizontal: Spacing.md,
-    paddingVertical: Spacing.sm,
+    paddingVertical: 6,
     borderRadius: BorderRadius.lg,
-    elevation: 1,
-    shadowColor: Colors.primary,
+    borderWidth: 1,
+    borderColor: Colors.gray[200],
+    elevation: 2,
+    shadowColor: Colors.black,
     shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.2,
+    shadowOpacity: 0.06,
     shadowRadius: 2,
   },
   creditsText: {
-    fontSize: FontSizes.sm,
+    fontSize: FontSizes.xs,
     color: Colors.primary,
     marginLeft: 4,
-    fontWeight: FontWeights.bold,
+    fontWeight: FontWeights.semibold,
   },
   scrollContainer: {
     flex: 1,
-    paddingHorizontal: Spacing.md,
+    paddingHorizontal: Spacing.sm,
   },
   section: {
     backgroundColor: Colors.white,
-    borderRadius: BorderRadius.lg,
-    marginTop: Spacing.md,
+    borderRadius: BorderRadius.md,
+    marginTop: Spacing.sm,
     elevation: 2,
     shadowColor: Colors.black,
     shadowOffset: { width: 0, height: 2 },
@@ -333,49 +364,49 @@ const styles = StyleSheet.create({
     overflow: 'hidden',
   },
   sectionTitle: {
-    fontSize: FontSizes.xl,
-    fontWeight: FontWeights.bold,
+    fontSize: FontSizes.md,
+    fontWeight: FontWeights.semibold,
     color: Colors.text.primary,
-    padding: Spacing.lg,
-    paddingBottom: Spacing.md,
+    padding: Spacing.md,
+    paddingBottom: Spacing.sm,
     backgroundColor: Colors.gray[100] + '50',
   },
   detailsCard: {
     backgroundColor: 'transparent',
-    padding: Spacing.lg,
+    padding: Spacing.md,
   },
   workspaceHeader: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingBottom: Spacing.lg,
+    paddingBottom: Spacing.md,
     borderBottomWidth: 1,
     borderBottomColor: Colors.border,
-    marginBottom: Spacing.lg,
+    marginBottom: Spacing.md,
   },
   workspaceIcon: {
-    width: 48,
-    height: 48,
-    borderRadius: BorderRadius.md,
+    width: 40,
+    height: 40,
+    borderRadius: BorderRadius.sm,
     backgroundColor: Colors.primary + '15',
     alignItems: 'center',
     justifyContent: 'center',
   },
   workspaceDetails: {
-    marginLeft: Spacing.md,
+    marginLeft: Spacing.sm,
     flex: 1,
   },
   workspaceName: {
-    fontSize: FontSizes.lg,
-    fontWeight: FontWeights.bold,
+    fontSize: FontSizes.md,
+    fontWeight: FontWeights.semibold,
     color: Colors.text.primary,
-    marginBottom: Spacing.xs,
+    marginBottom: 2,
   },
   locationRow: {
     flexDirection: 'row',
     alignItems: 'center',
   },
   workspaceLocation: {
-    fontSize: FontSizes.sm,
+    fontSize: FontSizes.xs,
     color: Colors.text.secondary,
     marginLeft: Spacing.xs,
   },
@@ -383,26 +414,26 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     backgroundColor: Colors.warning + '15',
-    paddingHorizontal: Spacing.sm,
-    paddingVertical: Spacing.xs,
-    borderRadius: BorderRadius.md,
+    paddingHorizontal: Spacing.xs,
+    paddingVertical: 2,
+    borderRadius: BorderRadius.sm,
   },
   ratingText: {
-    fontSize: FontSizes.sm,
-    fontWeight: FontWeights.semibold,
+    fontSize: FontSizes.xs,
+    fontWeight: FontWeights.medium,
     color: Colors.warning,
     marginLeft: 2,
   },
   priceSection: {
-    paddingBottom: Spacing.lg,
+    paddingBottom: Spacing.md,
     borderBottomWidth: 1,
     borderBottomColor: Colors.border,
-    marginBottom: Spacing.lg,
+    marginBottom: Spacing.md,
   },
   priceLabel: {
-    fontSize: FontSizes.sm,
+    fontSize: FontSizes.xs,
     color: Colors.text.secondary,
-    marginBottom: Spacing.md,
+    marginBottom: Spacing.sm,
     fontWeight: FontWeights.medium,
   },
   priceContainer: {
@@ -415,19 +446,19 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   originalPrice: {
-    fontSize: FontSizes.md,
+    fontSize: FontSizes.sm,
     color: Colors.text.light,
     textDecorationLine: 'line-through',
-    marginRight: Spacing.sm,
+    marginRight: Spacing.xs,
   },
   discountBadge: {
     backgroundColor: Colors.success,
-    paddingHorizontal: Spacing.sm,
-    paddingVertical: 2,
-    borderRadius: BorderRadius.sm,
+    paddingHorizontal: Spacing.xs,
+    paddingVertical: 1,
+    borderRadius: 3,
   },
   discountText: {
-    fontSize: FontSizes.xs,
+    fontSize: 10,
     color: Colors.white,
     fontWeight: FontWeights.bold,
   },
@@ -436,54 +467,54 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   discountedPrice: {
-    fontSize: FontSizes.xl,
+    fontSize: FontSizes.lg,
     fontWeight: FontWeights.bold,
     color: Colors.text.primary,
     marginLeft: Spacing.xs,
   },
   detailsGrid: {
     flexDirection: 'row',
-    marginBottom: Spacing.lg,
-    gap: Spacing.md,
+    marginBottom: Spacing.md,
+    gap: Spacing.sm,
   },
   detailItem: {
     flex: 1,
     backgroundColor: Colors.gray[100],
-    padding: Spacing.md,
-    borderRadius: BorderRadius.md,
+    padding: Spacing.sm,
+    borderRadius: BorderRadius.sm,
     alignItems: 'center',
   },
   detailIconContainer: {
-    width: 40,
-    height: 40,
-    borderRadius: BorderRadius.md,
+    width: 32,
+    height: 32,
+    borderRadius: BorderRadius.sm,
     backgroundColor: Colors.primary + '15',
     alignItems: 'center',
     justifyContent: 'center',
-    marginBottom: Spacing.sm,
+    marginBottom: Spacing.xs,
   },
   detailContent: {
     alignItems: 'center',
   },
   detailLabel: {
-    fontSize: FontSizes.sm,
+    fontSize: FontSizes.xs,
     color: Colors.text.secondary,
-    marginBottom: Spacing.xs,
+    marginBottom: 2,
     fontWeight: FontWeights.medium,
   },
   detailValue: {
-    fontSize: FontSizes.lg,
+    fontSize: FontSizes.md,
     fontWeight: FontWeights.bold,
     color: Colors.text.primary,
-    marginBottom: Spacing.xs,
+    marginBottom: 2,
   },
   detailSubtext: {
-    fontSize: FontSizes.xs,
+    fontSize: 10,
     color: Colors.text.light,
     textAlign: 'center',
   },
   totalSection: {
-    paddingTop: Spacing.lg,
+    paddingTop: Spacing.md,
     borderTopWidth: 1,
     borderTopColor: Colors.border,
   },
@@ -491,11 +522,11 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    marginBottom: Spacing.md,
+    marginBottom: Spacing.sm,
   },
   totalLabel: {
-    fontSize: FontSizes.md,
-    fontWeight: FontWeights.semibold,
+    fontSize: FontSizes.sm,
+    fontWeight: FontWeights.medium,
     color: Colors.text.primary,
   },
   infoButton: {
@@ -505,69 +536,69 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    marginBottom: Spacing.sm,
+    marginBottom: Spacing.xs,
   },
   totalPriceContainer: {
     flexDirection: 'row',
     alignItems: 'center',
   },
   totalPrice: {
-    fontSize: FontSizes.xxl,
+    fontSize: FontSizes.lg,
     fontWeight: FontWeights.bold,
     color: Colors.text.primary,
     marginLeft: Spacing.xs,
   },
   totalPriceLabel: {
-    fontSize: FontSizes.md,
+    fontSize: FontSizes.sm,
     fontWeight: FontWeights.medium,
     color: Colors.text.secondary,
   },
   calculationText: {
-    fontSize: FontSizes.sm,
+    fontSize: FontSizes.xs,
     color: Colors.text.light,
-    marginBottom: Spacing.lg,
+    marginBottom: Spacing.md,
     textAlign: 'left',
   },
   cancellationInfo: {
     flexDirection: 'row',
     alignItems: 'flex-start',
     backgroundColor: Colors.success + '10',
-    padding: Spacing.md,
-    borderRadius: BorderRadius.md,
-    marginTop: Spacing.sm,
+    padding: Spacing.sm,
+    borderRadius: BorderRadius.sm,
+    marginTop: Spacing.xs,
   },
   cancellationIconContainer: {
-    width: 36,
-    height: 36,
-    borderRadius: BorderRadius.md,
+    width: 28,
+    height: 28,
+    borderRadius: BorderRadius.sm,
     backgroundColor: Colors.success + '20',
     alignItems: 'center',
     justifyContent: 'center',
-    marginRight: Spacing.sm,
+    marginRight: Spacing.xs,
   },
   cancellationContent: {
     flex: 1,
   },
   cancellationTitle: {
-    fontSize: FontSizes.md,
-    fontWeight: FontWeights.semibold,
+    fontSize: FontSizes.sm,
+    fontWeight: FontWeights.medium,
     color: Colors.success,
-    marginBottom: Spacing.xs,
+    marginBottom: 2,
   },
   cancellationText: {
-    fontSize: FontSizes.sm,
+    fontSize: FontSizes.xs,
     color: Colors.success,
-    lineHeight: 18,
+    lineHeight: 16,
   },
   offersSection: {
     backgroundColor: Colors.white,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    marginHorizontal: Spacing.md,
-    marginTop: Spacing.md,
-    padding: Spacing.lg,
-    borderRadius: BorderRadius.lg,
+    marginHorizontal: Spacing.sm,
+    marginTop: Spacing.sm,
+    padding: Spacing.md,
+    borderRadius: BorderRadius.md,
     elevation: 2,
     shadowColor: Colors.black,
     shadowOffset: { width: 0, height: 2 },
@@ -580,34 +611,34 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   offersIcon: {
-    width: 40,
-    height: 40,
-    borderRadius: BorderRadius.md,
+    width: 32,
+    height: 32,
+    borderRadius: BorderRadius.sm,
     backgroundColor: Colors.primary + '15',
     alignItems: 'center',
     justifyContent: 'center',
-    marginRight: Spacing.md,
+    marginRight: Spacing.sm,
   },
   offersTextContainer: {
     flex: 1,
   },
   offersTitle: {
-    fontSize: FontSizes.md,
-    fontWeight: FontWeights.semibold,
+    fontSize: FontSizes.sm,
+    fontWeight: FontWeights.medium,
     color: Colors.text.primary,
     marginBottom: 2,
   },
   offersSubtitle: {
-    fontSize: FontSizes.sm,
+    fontSize: FontSizes.xs,
     color: Colors.text.secondary,
   },
   assuranceSection: {
     backgroundColor: Colors.white,
-    marginHorizontal: Spacing.md,
-    marginTop: Spacing.md,
-    marginBottom: Spacing.xl,
-    padding: Spacing.lg,
-    borderRadius: BorderRadius.lg,
+    marginHorizontal: Spacing.sm,
+    marginTop: Spacing.sm,
+    marginBottom: Spacing.lg,
+    padding: Spacing.md,
+    borderRadius: BorderRadius.md,
     elevation: 2,
     shadowColor: Colors.black,
     shadowOffset: { width: 0, height: 2 },
@@ -617,52 +648,52 @@ const styles = StyleSheet.create({
   assuranceHeader: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: Spacing.md,
+    marginBottom: Spacing.sm,
   },
   assuranceIconContainer: {
-    width: 32,
-    height: 32,
+    width: 28,
+    height: 28,
     borderRadius: BorderRadius.sm,
     backgroundColor: Colors.primary + '15',
     alignItems: 'center',
     justifyContent: 'center',
-    marginRight: Spacing.sm,
+    marginRight: Spacing.xs,
   },
   assuranceTitle: {
-    fontSize: FontSizes.md,
-    fontWeight: FontWeights.semibold,
+    fontSize: FontSizes.sm,
+    fontWeight: FontWeights.medium,
     color: Colors.text.primary,
     flex: 1,
   },
   assuranceItems: {
-    gap: Spacing.md,
+    gap: Spacing.sm,
   },
   assuranceItem: {
     flexDirection: 'row',
     alignItems: 'center',
     backgroundColor: Colors.gray[100],
-    padding: Spacing.md,
-    borderRadius: BorderRadius.md,
+    padding: Spacing.sm,
+    borderRadius: BorderRadius.sm,
   },
   assuranceItemIcon: {
-    width: 24,
-    height: 24,
+    width: 20,
+    height: 20,
     borderRadius: BorderRadius.sm,
     backgroundColor: Colors.success + '15',
     alignItems: 'center',
     justifyContent: 'center',
-    marginRight: Spacing.sm,
+    marginRight: Spacing.xs,
   },
   assuranceText: {
-    fontSize: FontSizes.sm,
+    fontSize: FontSizes.xs,
     color: Colors.text.primary,
     fontWeight: FontWeights.medium,
     flex: 1,
   },
   bottomSection: {
     backgroundColor: Colors.white,
-    padding: Spacing.lg,
-    paddingBottom: Spacing.xl,
+    padding: Spacing.md,
+    paddingBottom: Spacing.lg,
     borderTopWidth: 1,
     borderTopColor: Colors.border,
     elevation: 8,
@@ -673,18 +704,18 @@ const styles = StyleSheet.create({
   },
   summaryCard: {
     backgroundColor: Colors.gray[100],
-    padding: Spacing.md,
-    borderRadius: BorderRadius.md,
-    marginBottom: Spacing.lg,
+    padding: Spacing.sm,
+    borderRadius: BorderRadius.sm,
+    marginBottom: Spacing.md,
   },
   summaryRow: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    marginBottom: Spacing.sm,
+    marginBottom: Spacing.xs,
   },
   summaryLabel: {
-    fontSize: FontSizes.md,
+    fontSize: FontSizes.sm,
     fontWeight: FontWeights.medium,
     color: Colors.text.primary,
   },
@@ -692,26 +723,26 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     backgroundColor: Colors.primary + '15',
-    paddingHorizontal: Spacing.sm,
-    paddingVertical: Spacing.xs,
+    paddingHorizontal: Spacing.xs,
+    paddingVertical: 2,
     borderRadius: BorderRadius.sm,
   },
   editText: {
-    fontSize: FontSizes.sm,
+    fontSize: FontSizes.xs,
     color: Colors.primary,
     fontWeight: FontWeights.medium,
-    marginLeft: Spacing.xs,
+    marginLeft: 2,
   },
   summaryDetails: {
     flexDirection: 'row',
-    gap: Spacing.lg,
+    gap: Spacing.md,
   },
   summaryItem: {
     flexDirection: 'row',
     alignItems: 'center',
   },
   summaryValue: {
-    fontSize: FontSizes.sm,
+    fontSize: FontSizes.xs,
     color: Colors.text.primary,
     fontWeight: FontWeights.medium,
     marginLeft: Spacing.xs,
@@ -720,19 +751,19 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'flex-end',
     justifyContent: 'space-between',
-    marginBottom: Spacing.lg,
+    marginBottom: Spacing.md,
   },
   totalInfo: {
     flex: 1,
   },
   totalBottomLabel: {
-    fontSize: FontSizes.md,
+    fontSize: FontSizes.sm,
     fontWeight: FontWeights.medium,
     color: Colors.text.secondary,
-    marginBottom: Spacing.xs,
+    marginBottom: 2,
   },
   totalBottomPrice: {
-    fontSize: FontSizes.xxl,
+    fontSize: FontSizes.xl,
     fontWeight: FontWeights.bold,
     color: Colors.text.primary,
   },
@@ -740,18 +771,18 @@ const styles = StyleSheet.create({
     alignItems: 'flex-end',
   },
   savingsText: {
-    fontSize: FontSizes.sm,
+    fontSize: FontSizes.xs,
     color: Colors.success,
-    fontWeight: FontWeights.semibold,
+    fontWeight: FontWeights.medium,
     backgroundColor: Colors.success + '15',
-    paddingHorizontal: Spacing.sm,
-    paddingVertical: Spacing.xs,
+    paddingHorizontal: Spacing.xs,
+    paddingVertical: 2,
     borderRadius: BorderRadius.sm,
   },
   proceedButton: {
     backgroundColor: Colors.primary,
-    paddingVertical: Spacing.lg,
-    borderRadius: BorderRadius.lg,
+    paddingVertical: Spacing.md,
+    borderRadius: BorderRadius.md,
     alignItems: 'center',
     elevation: 4,
     shadowColor: Colors.primary,
@@ -764,9 +795,9 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   proceedButtonText: {
-    fontSize: FontSizes.lg,
-    fontWeight: FontWeights.bold,
+    fontSize: FontSizes.md,
+    fontWeight: FontWeights.semibold,
     color: Colors.white,
-    marginRight: Spacing.sm,
+    marginRight: Spacing.xs,
   },
 });

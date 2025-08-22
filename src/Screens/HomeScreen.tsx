@@ -21,6 +21,7 @@ import { MeetingRoomScreen } from './MeetingRoomScreen';
 import { WorkspaceSearchScreen } from './WorkspaceSearchScreen';
 import { WorkspaceDetailsScreen } from './WorkspaceDetailsScreen';
 import { BookingScreen } from './BookingScreen';
+import { BookingDetailScreen } from './BookingDetailScreen';
 import { ProfileScreen } from './ProfileScreen';
 import { Colors } from '../constants/theme';
 import { Location, Workspace, ServiceType, TabNavigationType } from '../types';
@@ -46,6 +47,7 @@ export const HomeScreen: React.FC = () => {
   const [showDeskScreen, setShowDeskScreen] = useState(false);
   const [showMeetingRoomScreen, setShowMeetingRoomScreen] = useState(false);
   const [showProfileScreen, setShowProfileScreen] = useState(false);
+  const [showBookingDetailScreen, setShowBookingDetailScreen] = useState(false);
 
   // Event handlers
   const handleLocationPress = () => {
@@ -144,12 +146,19 @@ export const HomeScreen: React.FC = () => {
     if (tab === 'Desks') {
       setShowDeskScreen(true);
       setShowMeetingRoomScreen(false);
+      setShowBookingDetailScreen(false);
     } else if (tab === 'Meeting Rooms') {
       setShowMeetingRoomScreen(true);
       setShowDeskScreen(false);
+      setShowBookingDetailScreen(false);
+    } else if (tab === 'Bookings') {
+      setShowBookingDetailScreen(true);
+      setShowDeskScreen(false);
+      setShowMeetingRoomScreen(false);
     } else if (tab === 'Home') {
       setShowDeskScreen(false);
       setShowMeetingRoomScreen(false);
+      setShowBookingDetailScreen(false);
     } else {
       Alert.alert('Navigation', `Navigate to ${tab} screen`);
     }
@@ -278,6 +287,32 @@ export const HomeScreen: React.FC = () => {
 
         <BottomNavigation
           activeTab="Meeting Rooms"
+          onTabPress={handleTabPress}
+        />
+      </View>
+    );
+  }
+
+  // Show booking detail screen if Bookings tab is active or showBookingDetailScreen is true
+  if (activeTab === 'Bookings' || showBookingDetailScreen) {
+    return (
+      <View style={styles.container}>
+        <StatusBar style="dark" backgroundColor={Colors.white} />
+        
+        <BookingDetailScreen
+          onBack={() => {
+            setActiveTab('Home');
+            setShowBookingDetailScreen(false);
+          }}
+          onNavigateToWorkspaceSearch={() => {
+            setActiveTab('Home');
+            setShowBookingDetailScreen(false);
+            setShowWorkspaceSearch(true);
+          }}
+        />
+
+        <BottomNavigation
+          activeTab="Bookings"
           onTabPress={handleTabPress}
         />
       </View>

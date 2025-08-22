@@ -16,6 +16,7 @@ import { Colors, Spacing, FontSizes, FontWeights, BorderRadius } from '../consta
 import { Location, Workspace } from '../types';
 import { FilterModal, DatePicker } from '../components';
 import { WorkspaceSearchScreen } from './WorkspaceSearchScreen';
+import { RoomSlotSelectionScreen } from './RoomSlotSelectionScreen';
 
 interface MeetingRoomScreenProps {
   selectedLocation: Location;
@@ -35,6 +36,8 @@ export const MeetingRoomScreen: React.FC<MeetingRoomScreenProps> = ({
   const [showDatePicker, setShowDatePicker] = useState(false);
   const [showFilterModal, setShowFilterModal] = useState(false);
   const [showWorkspaceSearch, setShowWorkspaceSearch] = useState(false);
+  const [showRoomSlotSelection, setShowRoomSlotSelection] = useState(false);
+  const [selectedWorkspace, setSelectedWorkspace] = useState<Workspace | null>(null);
   const [activeFilters, setActiveFilters] = useState({
     sortBy: 'popularity',
     spaceType: 'all',
@@ -116,8 +119,8 @@ export const MeetingRoomScreen: React.FC<MeetingRoomScreenProps> = ({
   };
 
   const handleBookPress = (workspace: Workspace) => {
-    // Book Room functionality is disabled - only Book Desk is available
-    Alert.alert('Info', 'Meeting room booking is not available at this time.');
+    setSelectedWorkspace(workspace);
+    setShowRoomSlotSelection(true);
   };
 
   const handleSharePress = async (workspace: Workspace) => {
@@ -152,6 +155,17 @@ export const MeetingRoomScreen: React.FC<MeetingRoomScreenProps> = ({
         onWorkspaceSelect={handleWorkspaceSelect}
         onBack={() => setShowWorkspaceSearch(false)}
         onWorkspacePress={handleWorkspacePress}
+      />
+    );
+  }
+
+  // Show room slot selection screen if active
+  if (showRoomSlotSelection && selectedWorkspace) {
+    return (
+      <RoomSlotSelectionScreen
+        onBack={() => setShowRoomSlotSelection(false)}
+        workspaceName={selectedWorkspace.name}
+        selectedDate={selectedDate}
       />
     );
   }
