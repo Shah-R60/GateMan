@@ -34,7 +34,7 @@ export const DatePicker: React.FC<DatePickerProps> = ({
   const currentDate = new Date();
   const [selectedMonth, setSelectedMonth] = useState(currentDate.getMonth());
   const [selectedYear, setSelectedYear] = useState(currentDate.getFullYear());
-  const [selectedDay, setSelectedDay] = useState<number | null>(null);
+  const [selectedDay, setSelectedDay] = useState<number | null>(currentDate.getDate()); // Default to current date
 
   const getDaysInMonth = (month: number, year: number) => {
     return new Date(year, month + 1, 0).getDate();
@@ -60,6 +60,15 @@ export const DatePicker: React.FC<DatePickerProps> = ({
   };
 
   const handleDateSelect = (day: number) => {
+    // Check if the selected date is in the past
+    const selectedDateObj = new Date(selectedYear, selectedMonth, day);
+    const today = new Date();
+    today.setHours(0, 0, 0, 0); // Reset time for accurate comparison
+    
+    if (selectedDateObj < today) {
+      return; // Don't allow selection of past dates
+    }
+    
     setSelectedDay(day);
     const formattedDate = formatDate(day, selectedMonth, selectedYear);
     onDateSelect(formattedDate);
@@ -67,7 +76,15 @@ export const DatePicker: React.FC<DatePickerProps> = ({
   };
 
   const navigateMonth = (direction: 'prev' | 'next') => {
+    const currentMonth = currentDate.getMonth();
+    const currentYear = currentDate.getFullYear();
+    
     if (direction === 'prev') {
+      // Don't allow navigation to past months
+      if (selectedYear < currentYear || (selectedYear === currentYear && selectedMonth <= currentMonth)) {
+        return;
+      }
+      
       if (selectedMonth === 0) {
         setSelectedMonth(11);
         setSelectedYear(selectedYear - 1);
@@ -88,6 +105,8 @@ export const DatePicker: React.FC<DatePickerProps> = ({
     const daysInMonth = getDaysInMonth(selectedMonth, selectedYear);
     const firstDay = getFirstDayOfMonth(selectedMonth, selectedYear);
     const days = [];
+    const today = new Date();
+    today.setHours(0, 0, 0, 0); // Reset time for accurate comparison
     
     // Add empty cells for days before the first day of the month
     for (let i = 0; i < firstDay; i++) {
@@ -96,26 +115,36 @@ export const DatePicker: React.FC<DatePickerProps> = ({
     
     // Add days of the month
     for (let day = 1; day <= daysInMonth; day++) {
+      const dayDate = new Date(selectedYear, selectedMonth, day);
       const isToday = day === currentDate.getDate() && 
                      selectedMonth === currentDate.getMonth() && 
                      selectedYear === currentDate.getFullYear();
-      const isSelected = day === 21; // Default selected date (Tomorrow)
+      const isSelected = day === selectedDay;
+      const isPast = dayDate < today;
+      const hasSelectedFutureDate = selectedDay && selectedDay > currentDate.getDate() && 
+                                   selectedMonth === currentDate.getMonth() && 
+                                   selectedYear === currentDate.getFullYear();
       
       days.push(
         <TouchableOpacity
           key={day}
           style={[
             styles.dayButton,
-            isToday && styles.todayButton,
-            isSelected && styles.selectedDayButton,
+            isPast ? styles.pastDayButton : null,
+            isSelected && !isPast ? styles.selectedDayButton : null,
+            isToday && hasSelectedFutureDate ? styles.todayGreyButton : null,
+            isToday && !hasSelectedFutureDate && !isSelected ? styles.todayButton : null,
           ]}
           onPress={() => handleDateSelect(day)}
+          disabled={isPast}
         >
           <Text
             style={[
               styles.dayText,
-              isToday && styles.todayText,
-              isSelected && styles.selectedDayText,
+              isPast ? styles.pastDayText : null,
+              isSelected && !isPast ? styles.selectedDayText : null,
+              isToday && hasSelectedFutureDate ? styles.todayGreyText : null,
+              isToday && !hasSelectedFutureDate && !isSelected ? styles.todayText : null,
             ]}
           >
             {day}
@@ -147,10 +176,22 @@ export const DatePicker: React.FC<DatePickerProps> = ({
           {/* Month Navigation */}
           <View style={styles.monthNavigation}>
             <TouchableOpacity
-              style={styles.navButton}
+              style={[
+                styles.navButton,
+                (selectedYear <= currentDate.getFullYear() && selectedMonth <= currentDate.getMonth()) ? styles.disabledNavButton : null
+              ]}
               onPress={() => navigateMonth('prev')}
+              disabled={selectedYear <= currentDate.getFullYear() && selectedMonth <= currentDate.getMonth()}
             >
-              <Ionicons name="chevron-back" size={20} color={Colors.text.primary} />
+              <Ionicons 
+                name="chevron-back" 
+                size={20} 
+                color={
+                  (selectedYear <= currentDate.getFullYear() && selectedMonth <= currentDate.getMonth()) 
+                    ? Colors.gray[400] 
+                    : Colors.text.primary
+                } 
+              />
             </TouchableOpacity>
             
             <Text style={styles.monthYearText}>
@@ -188,7 +229,7 @@ export const DatePicker: React.FC<DatePickerProps> = ({
               if (selectedDay) {
                 handleDateSelect(selectedDay);
               } else {
-                handleDateSelect(21); // Default to tomorrow
+                handleDateSelect(currentDate.getDate()); // Default to today
               }
             }}
           >
@@ -239,6 +280,9 @@ const styles = StyleSheet.create({
   navButton: {
     padding: Spacing.sm,
   },
+  disabledNavButton: {
+    opacity: 0.3,
+  },
   monthYearText: {
     fontSize: FontSizes.lg,
     fontWeight: FontWeights.semibold,
@@ -246,7 +290,6 @@ const styles = StyleSheet.create({
   },
   calendarHeader: {
     flexDirection: 'row',
-    justifyContent: 'space-around',
     paddingVertical: Spacing.md,
     marginTop: Spacing.md,
   },
@@ -255,28 +298,37 @@ const styles = StyleSheet.create({
     fontWeight: FontWeights.medium,
     color: Colors.text.secondary,
     textAlign: 'center',
-    width: 40,
+    flex: 1,
   },
   calendarGrid: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    justifyContent: 'space-around',
   },
   emptyDay: {
-    width: 40,
+    width: '14.28%', // 100% / 7 days = 14.28%
     height: 40,
-    margin: 2,
+    marginVertical: 2,
   },
   dayButton: {
-    width: 40,
+    width: '14.28%', // 100% / 7 days = 14.28%
     height: 40,
-    margin: 2,
+    marginVertical: 2,
     borderRadius: BorderRadius.full,
     justifyContent: 'center',
     alignItems: 'center',
   },
+  pastDayButton: {
+    backgroundColor: 'transparent',
+  },
   todayButton: {
-    backgroundColor: Colors.gray[200],
+    backgroundColor: 'transparent',
+    borderWidth: 2,
+    borderColor: Colors.primary,
+  },
+  todayGreyButton: {
+    backgroundColor: 'transparent',
+    borderWidth: 2,
+    borderColor: Colors.gray[400],
   },
   selectedDayButton: {
     backgroundColor: Colors.primary,
@@ -286,8 +338,16 @@ const styles = StyleSheet.create({
     color: Colors.text.primary,
     textAlign: 'center',
   },
+  pastDayText: {
+    color: Colors.gray[400],
+  },
   todayText: {
     fontWeight: FontWeights.semibold,
+    color: Colors.primary,
+  },
+  todayGreyText: {
+    fontWeight: FontWeights.semibold,
+    color: Colors.gray[400],
   },
   selectedDayText: {
     color: Colors.white,

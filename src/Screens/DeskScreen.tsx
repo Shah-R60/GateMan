@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   View,
   Text,
@@ -6,16 +6,17 @@ import {
   TouchableOpacity,
   ScrollView,
   TextInput,
-  Image,
   Share,
   Alert,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { Colors, Spacing, FontSizes, FontWeights, BorderRadius } from '../constants/theme';
-import { Location, Workspace } from '../types';
+import { Location, Workspace, Property } from '../types';
 import { FilterModal, DatePicker } from '../components';
 import { WorkspaceSearchScreen } from './WorkspaceSearchScreen';
+import { apiService } from '../services/apiService';
+import { ImageCarousel } from '../components/common/ImageCarousel';
 
 interface DeskScreenProps {
   selectedLocation: Location;
@@ -50,41 +51,63 @@ export const DeskScreen: React.FC<DeskScreenProps> = ({
     },
   });
 
-  // Mock data for desk workspaces
-  const deskWorkspaces: Workspace[] = [
-    {
-      id: '1',
-      name: 'awfis - Kirsh Cubical',
-      location: 'Thaltej, Ahmedabad',
-      distance: '7.06 kms away',
-      hours: '09:00 am - 06:00 pm (Tue)',
-      price: 300,
+  // State for workspace data
+  const [deskWorkspaces, setDeskWorkspaces] = useState<Workspace[]>([]);
+  const [loading, setLoading] = useState(false);
+
+  // Function to convert Property to Workspace format
+  const convertPropertyToWorkspace = (property: Property): Workspace => {
+    return {
+      id: property._id,
+      name: property.name,
+      location: `${property.address}, ${property.city}`,
+      distance: '1.2 km', // This could be calculated based on user location
+      hours: property.isSaturdayOpened && property.isSundayOpened 
+        ? '24/7' 
+        : property.isSaturdayOpened 
+          ? 'Mon-Sat 9:00 AM - 6:00 PM' 
+          : 'Mon-Fri 9:00 AM - 6:00 PM',
+      price: property.totalCostPerSeat,
       currency: '₹',
-      period: '/day',
-      imageUrl: 'https://images.unsplash.com/photo-1497366216548-37526070297c?w=600',
-      isPopular: true,
-      rating: 4.34,
+      period: 'seat/day',
+      imageUrl: property.propertyImages?.[0] || 'https://via.placeholder.com/300x200',
+      images: property.propertyImages && property.propertyImages.length > 0 
+        ? property.propertyImages 
+        : ['https://via.placeholder.com/300x200'],
+      amenities: property.amenities,
+      rating: 4.5, // Default rating since it's not in the API response
+      isPopular: property.seatingCapacity > 50, // Consider popular if seating capacity > 50
       seatingTypes: [
         { type: 'Open Desk', available: true },
       ],
-    },
-    {
-      id: '2',
-      name: 'WeWork BKC',
-      location: 'Bandra Kurla Complex, Mumbai',
-      distance: '12.5 kms away',
-      hours: '24/7 Access',
-      price: 450,
-      currency: '₹',
-      period: '/day',
-      imageUrl: 'https://images.unsplash.com/photo-1542744173-8e7e53415bb0?w=600',
-      isPopular: true,
-      rating: 4.7,
-      seatingTypes: [
-        { type: 'Private Desk', available: true },
-      ],
-    },
-  ];
+    };
+  };
+
+  // Fetch properties from API
+  useEffect(() => {
+    const fetchProperties = async () => {
+      try {
+        setLoading(true);
+        const response = await apiService.getProperties();
+        if (response.success && response.data && response.data.properties) {
+          // Filter properties to only show "Coworking Space" types
+          const coworkingSpaces = response.data.properties.filter(
+            property => property.type === "Coworking Space"
+          );
+          const convertedWorkspaces = coworkingSpaces.map(convertPropertyToWorkspace);
+          setDeskWorkspaces(convertedWorkspaces);
+        }
+      } catch (error) {
+        console.error('Failed to fetch properties:', error);
+        // Keep using empty array if API fails
+        Alert.alert('Notice', 'Unable to load workspaces. Please check your network connection.');
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchProperties();
+  }, []);
 
   const handleDateSelect = (date: string) => {
     setSelectedDate(date);
@@ -247,7 +270,7 @@ export const DeskScreen: React.FC<DeskScreenProps> = ({
 
         {/* Results Count */}
         <Text style={styles.resultsText}>
-          Showing 7 result(s) for desks in {selectedLocation.city} for {selectedDate}
+          Showing {deskWorkspaces.length} result(s) for desks in {selectedLocation.city} for {selectedDate}
         </Text>
 
         {/* Credits Info */}
@@ -258,17 +281,29 @@ export const DeskScreen: React.FC<DeskScreenProps> = ({
 
         {/* Workspace List */}
         <View style={styles.workspaceList}>
-          {deskWorkspaces.map((workspace) => (
+          {loading ? (
+            <View style={styles.loadingContainer}>
+              <Text style={styles.loadingText}>Loading workspaces...</Text>
+            </View>
+          ) : deskWorkspaces.length === 0 ? (
+            <View style={styles.emptyContainer}>
+              <Text style={styles.emptyText}>No workspaces found</Text>
+            </View>
+          ) : (
+            deskWorkspaces.map((workspace) => (
             <TouchableOpacity
               key={workspace.id}
               style={styles.workspaceCard}
               onPress={() => handleWorkspacePress(workspace)}
+              activeOpacity={0.8}
             >
               <View style={styles.workspaceImageContainer}>
-                <Image
-                  source={{ uri: workspace.imageUrl }}
-                  style={styles.workspaceImage}
-                  resizeMode="cover"
+                <ImageCarousel
+                  images={workspace.images || [workspace.imageUrl]}
+                  height={240}
+                  showIndicators={true}
+                  showNavigation={true}
+                  borderRadius={BorderRadius.lg}
                 />
                 {workspace.isPopular && (
                   <View style={styles.popularBadge}>
@@ -326,7 +361,8 @@ export const DeskScreen: React.FC<DeskScreenProps> = ({
                 </View>
               </View>
             </TouchableOpacity>
-          ))}
+            ))
+          )}
         </View>
       </ScrollView>
 
@@ -481,10 +517,10 @@ const styles = StyleSheet.create({
     margin: Spacing.md,
     borderRadius: BorderRadius.lg,
     overflow: 'hidden',
-    height: 200,
+    height: 250,
   },
   bookingCardImage: {
-    width: '100%',
+    width: '50%',
     height: '100%',
   },
   bookingCardOverlay: {
@@ -584,16 +620,14 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.1,
     shadowRadius: 4,
     elevation: 3,
+    overflow: 'hidden',
   },
   workspaceImageContainer: {
-    height: 200,
+    height: 240,
     position: 'relative',
-  },
-  workspaceImage: {
-    width: '100%',
-    height: '100%',
     borderTopLeftRadius: BorderRadius.lg,
     borderTopRightRadius: BorderRadius.lg,
+    overflow: 'hidden',
   },
   popularBadge: {
     position: 'absolute',
@@ -707,5 +741,25 @@ const styles = StyleSheet.create({
     color: Colors.white,
     fontSize: FontSizes.md,
     fontWeight: FontWeights.semibold,
+  },
+  loadingContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingVertical: Spacing.xl,
+  },
+  loadingText: {
+    fontSize: FontSizes.md,
+    color: Colors.text.secondary,
+  },
+  emptyContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingVertical: Spacing.xl,
+  },
+  emptyText: {
+    fontSize: FontSizes.md,
+    color: Colors.text.secondary,
   },
 });

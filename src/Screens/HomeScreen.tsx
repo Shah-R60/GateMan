@@ -64,9 +64,9 @@ export const HomeScreen: React.FC = () => {
         : property.isSaturdayOpened 
           ? 'Mon-Sat 9:00 AM - 6:00 PM' 
           : 'Mon-Fri 9:00 AM - 6:00 PM',
-      price: property.cost,
-      currency: 'INR',
-      period: 'day',
+      price: property.totalCostPerSeat,
+      currency: '₹',
+      period: 'seat/day',
       imageUrl: property.propertyImages?.[0] || 'https://via.placeholder.com/300x200',
       images: property.propertyImages && property.propertyImages.length > 0 
         ? property.propertyImages 

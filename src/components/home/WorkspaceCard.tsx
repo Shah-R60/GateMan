@@ -34,7 +34,7 @@ export const WorkspaceCard: React.FC<WorkspaceCardProps> = ({
       <View style={styles.imageContainer}>
         <ImageCarousel
           images={workspace.images || [workspace.imageUrl]}
-          height={200}
+          height={250}
           showIndicators={true}
           showNavigation={true}
           borderRadius={BorderRadius.lg}
@@ -100,10 +100,13 @@ export const WorkspaceCard: React.FC<WorkspaceCardProps> = ({
 
         <View style={styles.footer}>
           <View style={styles.priceContainer}>
-            <Text style={styles.price}>
-              {workspace.currency}{workspace.price}
-            </Text>
-            <Text style={styles.period}>{workspace.period}</Text>
+            <Text style={styles.priceLabel}>Price</Text>
+            <View style={styles.priceRow}>
+              <Text style={styles.price}>
+                {workspace.currency}{workspace.price?.toLocaleString('en-IN') || '0'}
+              </Text>
+              <Text style={styles.period}>/{workspace.period}</Text>
+            </View>
           </View>
           <TouchableOpacity
             style={styles.bookButton}
@@ -135,7 +138,7 @@ const styles = StyleSheet.create({
   },
   imageContainer: {
     position: 'relative',
-    height: 200,
+    height: 250,
     borderTopLeftRadius: BorderRadius.lg,
     borderTopRightRadius: BorderRadius.lg,
     overflow: 'hidden',
@@ -221,6 +224,17 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   priceContainer: {
+    flexDirection: 'column',
+    alignItems: 'flex-start',
+  },
+  priceLabel: {
+    fontSize: FontSizes.xs,
+    color: Colors.text.secondary,
+    marginBottom: 2,
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
+  },
+  priceRow: {
     flexDirection: 'row',
     alignItems: 'baseline',
   },
