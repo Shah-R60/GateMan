@@ -1,4 +1,4 @@
-import { Location, Workspace, Offer } from '../types';
+import { Location, Workspace, Offer, PropertyApiResponse } from '../types';
 
 /**
  * API service class for handling all API calls
@@ -96,6 +96,23 @@ class ApiService {
     // For now, return empty array
     // In production: return this.request<any[]>('/bookings/user');
     return [];
+  }
+
+  // Properties API
+  async getProperties(): Promise<PropertyApiResponse> {
+    try {
+      const response = await fetch('http://192.168.137.1:3004/api/v1/properties/public');
+      
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+      
+      const data = await response.json();
+      return data;
+    } catch (error) {
+      console.error('Failed to fetch properties:', error);
+      throw error;
+    }
   }
 
   // User profile API

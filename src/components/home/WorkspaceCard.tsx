@@ -4,11 +4,11 @@ import {
   Text,
   StyleSheet,
   TouchableOpacity,
-  Image,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { Colors, Spacing, FontSizes, FontWeights, BorderRadius } from '../../constants/theme';
 import { Workspace } from '../../types';
+import { ImageCarousel } from '../common/ImageCarousel';
 
 interface WorkspaceCardProps {
   workspace: Workspace;
@@ -32,10 +32,12 @@ export const WorkspaceCard: React.FC<WorkspaceCardProps> = ({
       activeOpacity={0.9}
     >
       <View style={styles.imageContainer}>
-        <Image
-          source={{ uri: workspace.imageUrl }}
-          style={styles.image}
-          resizeMode="cover"
+        <ImageCarousel
+          images={workspace.images || [workspace.imageUrl]}
+          height={200}
+          showIndicators={true}
+          showNavigation={true}
+          borderRadius={BorderRadius.lg}
         />
         {workspace.isPopular && (
           <View style={styles.popularBadge}>
@@ -137,10 +139,6 @@ const styles = StyleSheet.create({
     borderTopLeftRadius: BorderRadius.lg,
     borderTopRightRadius: BorderRadius.lg,
     overflow: 'hidden',
-  },
-  image: {
-    width: '100%',
-    height: '100%',
   },
   popularBadge: {
     position: 'absolute',

@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   View,
   StyleSheet,
@@ -23,8 +23,9 @@ import { WorkspaceDetailsScreen } from './WorkspaceDetailsScreen';
 import { BookingScreen } from './BookingScreen';
 import { BookingDetailScreen } from './BookingDetailScreen';
 import { ProfileScreen } from './ProfileScreen';
+import { apiService } from '../services/apiService';
 import { Colors } from '../constants/theme';
-import { Location, Workspace, ServiceType, TabNavigationType } from '../types';
+import { Location, Workspace, ServiceType, TabNavigationType, Property } from '../types';
 import {
   mockLocations,
   mockOffers,
@@ -48,6 +49,54 @@ export const HomeScreen: React.FC = () => {
   const [showMeetingRoomScreen, setShowMeetingRoomScreen] = useState(false);
   const [showProfileScreen, setShowProfileScreen] = useState(false);
   const [showBookingDetailScreen, setShowBookingDetailScreen] = useState(false);
+  const [workspaces, setWorkspaces] = useState<Workspace[]>(mockWorkspaces);
+  const [loading, setLoading] = useState(false);
+
+  // Function to convert Property to Workspace format
+  const convertPropertyToWorkspace = (property: Property): Workspace => {
+    return {
+      id: property._id,
+      name: property.name,
+      location: `${property.address}, ${property.city}`,
+      distance: '1.2 km', // This could be calculated based on user location
+      hours: property.isSaturdayOpened && property.isSundayOpened 
+        ? '24/7' 
+        : property.isSaturdayOpened 
+          ? 'Mon-Sat 9:00 AM - 6:00 PM' 
+          : 'Mon-Fri 9:00 AM - 6:00 PM',
+      price: property.cost,
+      currency: 'INR',
+      period: 'day',
+      imageUrl: property.propertyImages?.[0] || 'https://via.placeholder.com/300x200',
+      images: property.propertyImages && property.propertyImages.length > 0 
+        ? property.propertyImages 
+        : ['https://via.placeholder.com/300x200'],
+      amenities: property.amenities,
+      rating: 4.5, // Default rating since it's not in the API response
+    };
+  };
+
+  // Fetch properties from API
+  useEffect(() => {
+    const fetchProperties = async () => {
+      try {
+        setLoading(true);
+        const response = await apiService.getProperties();
+        if (response.success && response.data && response.data.properties) {
+          const convertedWorkspaces = response.data.properties.map(convertPropertyToWorkspace);
+          setWorkspaces(convertedWorkspaces);
+        }
+      } catch (error) {
+        console.error('Failed to fetch properties:', error);
+        // Keep using mock data if API fails
+        Alert.alert('Notice', 'Using sample data. Please check your network connection.');
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchProperties();
+  }, []);
 
   // Event handlers
   const handleLocationPress = () => {
@@ -187,7 +236,7 @@ export const HomeScreen: React.FC = () => {
   };
 
   // Filter workspaces based on search query (simple implementation)
-  const filteredWorkspaces = mockWorkspaces.filter(workspace =>
+  const filteredWorkspaces = workspaces.filter(workspace =>
     workspace.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
     workspace.location.toLowerCase().includes(searchQuery.toLowerCase())
   );

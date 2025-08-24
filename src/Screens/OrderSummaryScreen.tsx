@@ -143,7 +143,7 @@ export const OrderSummaryScreen: React.FC<OrderSummaryScreenProps> = ({
         <View style={styles.assuranceSection}>
           <View style={styles.assuranceHeader}>
             <Ionicons name="shield-checkmark" size={20} color={Colors.primary} />
-            <Text style={styles.assuranceTitle}>myHQ Assurance</Text>
+            <Text style={styles.assuranceTitle}>GateMan Assurance</Text>
             <Ionicons name="information-circle-outline" size={16} color={Colors.text.secondary} />
           </View>
           

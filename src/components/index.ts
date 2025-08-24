@@ -2,6 +2,7 @@
 export { Header } from './common/Header';
 export { SearchBar } from './common/SearchBar';
 export { BottomNavigation } from './common/BottomNavigation';
+export { ImageCarousel } from './common/ImageCarousel';
 
 // Home components
 export { WelcomeOffers } from './home/WelcomeOffers';

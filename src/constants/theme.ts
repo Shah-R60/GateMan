@@ -1,5 +1,5 @@
 export const Colors = {
-  primary: '#0a27a6ff', // Primary purple from the design
+  primary: '#0a419aff', // Primary purple from the design
   secondary: '#B8860B', // Gold color for offers
   background: '#F5F5F5',
   white: '#FFFFFF',

@@ -72,7 +72,7 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({ onBack }) => {
         </View>
 
         {/* App Update Section */}
-        <View style={styles.updateSection}>
+        {/* <View style={styles.updateSection}>
           <View style={styles.updateIconContainer}>
             <Ionicons name="phone-portrait-outline" size={24} color={Colors.gray[400]} />
           </View>
@@ -83,7 +83,7 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({ onBack }) => {
           <TouchableOpacity style={styles.updateButton} onPress={handleUpdatePress}>
             <Text style={styles.updateButtonText}>Update</Text>
           </TouchableOpacity>
-        </View>
+        </View> */}
 
         {/* Flexi Pass Section */}
         <View style={styles.sectionContainer}>
@@ -120,10 +120,10 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({ onBack }) => {
           </TouchableOpacity>
         </View>
 
-        {/* myHQ Community Section */}
+        {/* GateMan Community Section */}
         <View style={styles.sectionContainer}>
           <View style={styles.sectionHeader}>
-            <Text style={styles.sectionTitle}>myHQ Community</Text>
+            <Text style={styles.sectionTitle}>GateMan Community</Text>
             <Text style={styles.communityIcon}>⚡</Text>
           </View>
           

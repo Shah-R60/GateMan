@@ -14,10 +14,71 @@ export interface Workspace {
   currency: string;
   period: string;
   imageUrl: string;
+  images?: string[]; // Array of images for carousel
   isPopular?: boolean;
   rating?: number;
   amenities?: string[];
   seatingTypes?: SeatingType[];
+}
+
+// API Property interface matching the backend structure
+export interface Property {
+  _id: string;
+  ownerId: {
+    _id: string;
+    name: string;
+    email: string;
+    phoneNumber: string;
+  };
+  name: string;
+  description: string;
+  propertyImages: string[];
+  landmark: string;
+  address: string;
+  city: string;
+  state: string;
+  pincode: number;
+  googleMapLink: string;
+  totalArea: number;
+  type: string;
+  floorSize: number;
+  totalFloor: number;
+  cost: number;
+  amenities: string[];
+  isSaturdayOpened: boolean;
+  isSundayOpened: boolean;
+  seatingCapacity: number;
+  totalCostPerSeat: number;
+  isPriceNegotiable: boolean;
+  unavailableDates: string[];
+  furnishingLevel: string;
+  propertyStatus: string;
+  verificationStatus: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface PropertyApiResponse {
+  success: boolean;
+  data: {
+    properties: Property[];
+    pagination: {
+      currentPage: number;
+      totalPages: number;
+      totalProperties: number;
+      hasNextPage: boolean;
+      hasPrevPage: boolean;
+    };
+    filters: {
+      type: string | null;
+      city: string | null;
+      state: string | null;
+      minCost: string | null;
+      maxCost: string | null;
+      amenities: string[] | null;
+      seatingCapacity: string | null;
+    };
+  };
 }
 
 export interface SeatingType {
