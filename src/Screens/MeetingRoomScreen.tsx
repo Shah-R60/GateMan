@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   View,
   Text,
@@ -6,17 +6,18 @@ import {
   TouchableOpacity,
   ScrollView,
   TextInput,
-  Image,
   Share,
   Alert,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { Colors, Spacing, FontSizes, FontWeights, BorderRadius } from '../constants/theme';
-import { Location, Workspace } from '../types';
+import { Location, Workspace, Property } from '../types';
 import { FilterModal, DatePicker } from '../components';
 import { WorkspaceSearchScreen } from './WorkspaceSearchScreen';
 import { RoomSlotSelectionScreen } from './RoomSlotSelectionScreen';
+import { apiService } from '../services/apiService';
+import { ImageCarousel } from '../components/common/ImageCarousel';
 
 interface MeetingRoomScreenProps {
   selectedLocation: Location;
@@ -51,41 +52,63 @@ export const MeetingRoomScreen: React.FC<MeetingRoomScreenProps> = ({
     },
   });
 
-  // Mock data for meeting room workspaces
-  const meetingRoomWorkspaces: Workspace[] = [
-    {
-      id: '1',
-      name: 'awfis - Executive Meeting Room',
-      location: 'Thaltej, Ahmedabad',
-      distance: '7.06 kms away',
-      hours: '09:00 am - 06:00 pm (Tue)',
-      price: 800,
+  // State for meeting room workspace data
+  const [meetingRoomWorkspaces, setMeetingRoomWorkspaces] = useState<Workspace[]>([]);
+  const [loading, setLoading] = useState(false);
+
+  // Function to convert Property to Workspace format
+  const convertPropertyToWorkspace = (property: Property): Workspace => {
+    return {
+      id: property._id,
+      name: property.name,
+      location: `${property.address}, ${property.city}`,
+      distance: '1.2 km', // This could be calculated based on user location
+      hours: property.isSaturdayOpened && property.isSundayOpened 
+        ? '24/7' 
+        : property.isSaturdayOpened 
+          ? 'Mon-Sat 9:00 AM - 6:00 PM' 
+          : 'Mon-Fri 9:00 AM - 6:00 PM',
+      price: property.totalCostPerSeat,
       currency: '₹',
-      period: '/hr',
-      imageUrl: 'https://images.unsplash.com/photo-1560472354-b33ff0c44a43?w=600',
-      isPopular: true,
-      rating: 4.34,
+      period: 'hr',
+      imageUrl: property.propertyImages?.[0] || 'https://via.placeholder.com/300x200',
+      images: property.propertyImages && property.propertyImages.length > 0 
+        ? property.propertyImages 
+        : ['https://via.placeholder.com/300x200'],
+      amenities: property.amenities,
+      rating: 4.5, // Default rating since it's not in the API response
+      isPopular: property.seatingCapacity > 10, // Consider popular if seating capacity > 10
       seatingTypes: [
         { type: 'Meeting Room', available: true },
       ],
-    },
-    {
-      id: '2',
-      name: 'WeWork Conference Room',
-      location: 'Bandra Kurla Complex, Mumbai',
-      distance: '12.5 kms away',
-      hours: '24/7 Access',
-      price: 1200,
-      currency: '₹',
-      period: '/hr',
-      imageUrl: 'https://images.unsplash.com/photo-1542744173-8e7e53415bb0?w=600',
-      isPopular: true,
-      rating: 4.7,
-      seatingTypes: [
-        { type: 'Meeting Room', available: true },
-      ],
-    },
-  ];
+    };
+  };
+
+  // Fetch properties from API
+  useEffect(() => {
+    const fetchProperties = async () => {
+      try {
+        setLoading(true);
+        const response = await apiService.getProperties();
+        if (response.success && response.data && response.data.properties) {
+          // Filter properties to only show "Meeting Room" types
+          const meetingRooms = response.data.properties.filter(
+            property => property.type === "Meeting Room"
+          );
+          const convertedWorkspaces = meetingRooms.map(convertPropertyToWorkspace);
+          setMeetingRoomWorkspaces(convertedWorkspaces);
+        }
+      } catch (error) {
+        console.error('Failed to fetch meeting room properties:', error);
+        // Keep using empty array if API fails
+        Alert.alert('Notice', 'Unable to load meeting rooms. Please check your network connection.');
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchProperties();
+  }, []);
 
   const handleFiltersPress = () => {
     setShowFilterModal(true);
@@ -249,7 +272,7 @@ export const MeetingRoomScreen: React.FC<MeetingRoomScreenProps> = ({
 
         {/* Results Count */}
         <Text style={styles.resultsText}>
-          Showing 14 result(s) for meeting rooms in {selectedLocation.city} for {selectedDate}
+          Showing {meetingRoomWorkspaces.length} result(s) for meeting rooms in {selectedLocation.city} for {selectedDate}
         </Text>
 
         {/* Credits Info */}
@@ -260,17 +283,29 @@ export const MeetingRoomScreen: React.FC<MeetingRoomScreenProps> = ({
 
         {/* Meeting Room List */}
         <View style={styles.workspaceList}>
-          {meetingRoomWorkspaces.map((workspace) => (
+          {loading ? (
+            <View style={styles.loadingContainer}>
+              <Text style={styles.loadingText}>Loading meeting rooms...</Text>
+            </View>
+          ) : meetingRoomWorkspaces.length === 0 ? (
+            <View style={styles.emptyContainer}>
+              <Text style={styles.emptyText}>No meeting rooms found</Text>
+            </View>
+          ) : (
+            meetingRoomWorkspaces.map((workspace) => (
             <TouchableOpacity
               key={workspace.id}
               style={styles.workspaceCard}
               onPress={() => handleWorkspacePress(workspace)}
+              activeOpacity={0.8}
             >
               <View style={styles.workspaceImageContainer}>
-                <Image
-                  source={{ uri: workspace.imageUrl }}
-                  style={styles.workspaceImage}
-                  resizeMode="cover"
+                <ImageCarousel
+                  images={workspace.images || [workspace.imageUrl]}
+                  height={240}
+                  showIndicators={true}
+                  showNavigation={true}
+                  borderRadius={BorderRadius.lg}
                 />
                 {workspace.isPopular && (
                   <View style={styles.popularBadge}>
@@ -328,7 +363,8 @@ export const MeetingRoomScreen: React.FC<MeetingRoomScreenProps> = ({
                 </View>
               </View>
             </TouchableOpacity>
-          ))}
+            ))
+          )}
         </View>
       </ScrollView>
 
@@ -591,14 +627,11 @@ const styles = StyleSheet.create({
     elevation: 3,
   },
   workspaceImageContainer: {
-    height: 200,
+    height: 240,
     position: 'relative',
-  },
-  workspaceImage: {
-    width: '100%',
-    height: '100%',
     borderTopLeftRadius: BorderRadius.lg,
     borderTopRightRadius: BorderRadius.lg,
+    overflow: 'hidden',
   },
   popularBadge: {
     position: 'absolute',
@@ -712,5 +745,25 @@ const styles = StyleSheet.create({
     color: Colors.white,
     fontSize: FontSizes.md,
     fontWeight: FontWeights.semibold,
+  },
+  loadingContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingVertical: Spacing.xl,
+  },
+  loadingText: {
+    fontSize: FontSizes.md,
+    color: Colors.text.secondary,
+  },
+  emptyContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingVertical: Spacing.xl,
+  },
+  emptyText: {
+    fontSize: FontSizes.md,
+    color: Colors.text.secondary,
   },
 });
