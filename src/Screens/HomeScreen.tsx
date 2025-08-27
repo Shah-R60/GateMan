@@ -269,6 +269,7 @@ export const HomeScreen: React.FC = () => {
     return (
       <WorkspaceDetailsScreen
         workspace={selectedWorkspace}
+        propertyId={selectedWorkspace.id}
         onBack={() => setSelectedWorkspace(null)}
       />
     );
