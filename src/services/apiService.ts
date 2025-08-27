@@ -1,4 +1,4 @@
-import { Location, Workspace, Offer, PropertyApiResponse } from '../types';
+import { Location, Workspace, Offer, PropertyApiResponse, Property } from '../types';
 
 /**
  * API service class for handling all API calls
@@ -111,6 +111,23 @@ class ApiService {
       return data;
     } catch (error) {
       console.error('Failed to fetch properties:', error);
+      throw error;
+    }
+  }
+
+  async getPropertyById(propertyId: string): Promise<Property> {
+    try {
+      const response = await fetch(`http://192.168.137.1:3004/api/v1/properties/${propertyId}`);
+      // console.log(response)
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+      
+      const data = await response.json();
+      console.log(data);
+      return data.data; // The property data is directly in data, not data.property
+    } catch (error) {
+      console.error('Failed to fetch property by ID:', error);
       throw error;
     }
   }

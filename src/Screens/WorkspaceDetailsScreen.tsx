@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   View,
   Text,
@@ -7,17 +7,20 @@ import {
   ScrollView,
   Image,
   Dimensions,
+  ActivityIndicator,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { StatusBar } from 'expo-status-bar';
 import { Ionicons } from '@expo/vector-icons';
 import { Colors, Spacing, FontSizes, FontWeights, BorderRadius } from '../constants/theme';
-import { Workspace } from '../types';
+import { Workspace, Property } from '../types';
+import { apiService } from '../services/apiService';
 
 const { width } = Dimensions.get('window');
 
 interface WorkspaceDetailsScreenProps {
   workspace: Workspace;
+  propertyId: string;
   onBack: () => void;
 }
 
@@ -95,18 +98,57 @@ const amenitiesList: Amenity[] = [
 
 export const WorkspaceDetailsScreen: React.FC<WorkspaceDetailsScreenProps> = ({
   workspace,
+  propertyId,
   onBack,
 }) => {
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
   const [showAllAmenities, setShowAllAmenities] = useState(false);
   const [activeTab, setActiveTab] = useState<'nearby' | 'ahmedabad'>('nearby');
+  const [propertyData, setPropertyData] = useState<Property | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
-  const images = [
-    workspace.imageUrl,
-    'https://images.unsplash.com/photo-1497366216548-37526070297c?w=500',
-    'https://images.unsplash.com/photo-1560472354-b33ff0c44a43?w=500',
-    'https://images.unsplash.com/photo-1556761175-4b46a572b786?w=500',
-  ];
+  // Log the propertyId for debugging
+  console.log('WorkspaceDetailsScreen - Received propertyId:', propertyId);
+
+  // Fetch property details using propertyId
+  useEffect(() => {
+    fetchPropertyDetails();
+  }, [propertyId]);
+
+  const fetchPropertyDetails = async () => {
+    if (!propertyId) {
+      setError('Property ID is required');
+      setLoading(false);
+      return;
+    }
+
+    try {
+      setLoading(true);
+      setError(null);
+      const property = await apiService.getPropertyById(propertyId);
+      setPropertyData(property);
+      console.log('Fetched property details:', property);
+    } catch (err) {
+      console.error('Failed to fetch property details:', err);
+      setError('Failed to load property details. Please try again.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Use property data if available, otherwise fallback to workspace prop
+  const displayData = propertyData || workspace;
+  const images = propertyData 
+    ? propertyData.propertyImages.length > 0 
+      ? propertyData.propertyImages 
+      : [workspace.imageUrl]
+    : [
+        workspace.imageUrl,
+        'https://images.unsplash.com/photo-1497366216548-37526070297c?w=500',
+        'https://images.unsplash.com/photo-1560472354-b33ff0c44a43?w=500',
+        'https://images.unsplash.com/photo-1556761175-4b46a572b786?w=500',
+      ];
 
   const visibleAmenities = showAllAmenities ? amenitiesList : amenitiesList.slice(0, 10);
 
@@ -147,6 +189,36 @@ export const WorkspaceDetailsScreen: React.FC<WorkspaceDetailsScreenProps> = ({
   return (
     <>
       <StatusBar style="light" backgroundColor="transparent" translucent />
+      
+      {/* Loading State */}
+      {loading && (
+        <View style={styles.centerContainer}>
+          <ActivityIndicator size="large" color={Colors.primary} />
+          <Text style={styles.loadingText}>Loading property details...</Text>
+        </View>
+      )}
+
+      {/* Error State */}
+      {error && (
+        <View style={styles.centerContainer}>
+          <Ionicons name="alert-circle" size={48} color={Colors.error} />
+          <Text style={styles.errorText}>{error}</Text>
+          <TouchableOpacity 
+            style={styles.retryButton} 
+            onPress={() => {
+              fetchPropertyDetails();
+            }}
+          >
+            <Text style={styles.retryButtonText}>Retry</Text>
+          </TouchableOpacity>
+          <TouchableOpacity style={styles.backButton} onPress={onBack}>
+            <Text style={styles.backButtonText}>Go Back</Text>
+          </TouchableOpacity>
+        </View>
+      )}
+
+      {/* Main Content - Only show when not loading and no error */}
+      {!loading && !error && (
       <View style={styles.container}>
         {/* Image Carousel */}
         <View style={styles.imageContainer}>
@@ -198,9 +270,18 @@ export const WorkspaceDetailsScreen: React.FC<WorkspaceDetailsScreenProps> = ({
         <ScrollView style={styles.scrollContainer} showsVerticalScrollIndicator={false}>
           {/* Workspace Info */}
           <View style={styles.workspaceInfo}>
-            <Text style={styles.workspaceName}>{workspace.name}</Text>
-            <Text style={styles.workspaceType}>COWORKING</Text>
-            <Text style={styles.workspaceLocation}>{workspace.location}</Text>
+            <Text style={styles.workspaceName}>
+              {propertyData ? propertyData.name : workspace.name}
+            </Text>
+            <Text style={styles.workspaceType}>
+              {propertyData ? propertyData.type.toUpperCase() : 'COWORKING'}
+            </Text>
+            <Text style={styles.workspaceLocation}>
+              {propertyData 
+                ? `${propertyData.address}, ${propertyData.city}, ${propertyData.state}`
+                : workspace.location
+              }
+            </Text>
             
             <View style={styles.ratingContainer}>
               <View style={styles.ratingStars}>
@@ -366,9 +447,14 @@ export const WorkspaceDetailsScreen: React.FC<WorkspaceDetailsScreenProps> = ({
 
           {/* More About */}
           <View style={styles.section}>
-            <Text style={styles.sectionTitle}>More about {workspace.name}</Text>
+            <Text style={styles.sectionTitle}>
+              More about {propertyData ? propertyData.name : workspace.name}
+            </Text>
             <Text style={styles.description}>
-              Workflo Mayuransh Elanza, Ahmedabad is a beautifully crafted smart coworking & office space for rent with over 140 seats. From meeting rooms to private offices for rent to the green integrated spaces.
+              {propertyData 
+                ? propertyData.description 
+                : "Workflo Mayuransh Elanza, Ahmedabad is a beautifully crafted smart coworking & office space for rent with over 140 seats. From meeting rooms to private offices for rent to the green integrated spaces."
+              }
             </Text>
             <TouchableOpacity>
               <Text style={styles.readMoreText}>Read more...</Text>
@@ -560,6 +646,7 @@ export const WorkspaceDetailsScreen: React.FC<WorkspaceDetailsScreenProps> = ({
           </View>
         </View>
       </View>
+      )}
     </>
   );
 };
@@ -1235,5 +1322,50 @@ const styles = StyleSheet.create({
     fontSize: FontSizes.md,
     fontWeight: FontWeights.semibold,
     color: Colors.white,
+  },
+  centerContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: Colors.background,
+    paddingHorizontal: Spacing.lg,
+  },
+  loadingText: {
+    fontSize: FontSizes.md,
+    color: Colors.text.secondary,
+    marginTop: Spacing.md,
+    textAlign: 'center',
+  },
+  errorText: {
+    fontSize: FontSizes.md,
+    color: Colors.error,
+    marginTop: Spacing.md,
+    marginBottom: Spacing.lg,
+    textAlign: 'center',
+  },
+  retryButton: {
+    backgroundColor: Colors.primary,
+    paddingHorizontal: Spacing.xl,
+    paddingVertical: Spacing.md,
+    borderRadius: BorderRadius.md,
+    marginBottom: Spacing.md,
+  },
+  retryButtonText: {
+    fontSize: FontSizes.md,
+    fontWeight: FontWeights.semibold,
+    color: Colors.white,
+  },
+  backButton: {
+    backgroundColor: Colors.white,
+    paddingHorizontal: Spacing.xl,
+    paddingVertical: Spacing.md,
+    borderRadius: BorderRadius.md,
+    borderWidth: 1,
+    borderColor: Colors.border,
+  },
+  backButtonText: {
+    fontSize: FontSizes.md,
+    fontWeight: FontWeights.medium,
+    color: Colors.text.primary,
   },
 });
