@@ -228,16 +228,40 @@ export const RoomSlotSelectionScreen: React.FC<RoomSlotSelectionScreenProps> = (
     return (
       <ConfirmBookingScreen
         onBack={() => setShowConfirmBookingScreen(false)}
-        workspace={{ 
-          id: "1",
-          name: workspaceName, 
-          location: "Thaltej, Ahmedabad",
-          distance: "2.5 km",
-          hours: "9 AM - 9 PM",
-          price: 50,
-          currency: "credits",
-          period: "hour",
-          imageUrl: "",
+        propertyData={{ 
+          _id: "1",
+          name: workspaceName,
+          description: "Meeting room space",
+          propertyImages: [""],
+          landmark: "Thaltej",
+          address: "Thaltej, Ahmedabad",
+          city: "Ahmedabad",
+          state: "Gujarat",
+          pincode: 380054,
+          googleMapLink: "",
+          totalArea: 100,
+          type: "Meeting Room",
+          floorSize: 100,
+          totalFloor: 6,
+          cost: 50,
+          amenities: ["Whiteboard", "WiFi"],
+          isSaturdayOpened: true,
+          isSundayOpened: false,
+          seatingCapacity: 6,
+          totalCostPerSeat: 50,
+          isPriceNegotiable: false,
+          unavailableDates: [],
+          furnishingLevel: "Fully Furnished",
+          propertyStatus: "Active",
+          verificationStatus: "Verified",
+          createdAt: "2025-08-27T00:00:00Z",
+          updatedAt: "2025-08-27T00:00:00Z",
+          ownerId: {
+            _id: "owner1",
+            name: "Owner Name",
+            email: "owner@example.com",
+            phoneNumber: "1234567890"
+          }
         }}
         selectedDate={currentSelectedDate}
         selectedDateCount={1}

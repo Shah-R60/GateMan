@@ -10,7 +10,7 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { Colors, Spacing, FontSizes, FontWeights, BorderRadius } from '../constants/theme';
-import { Workspace } from '../types';
+import { Property } from '../types';
 import { CreditsScreen } from './CreditsScreen';
 import { BookingScreen } from './BookingScreen';
 import { PaymentScreen } from './PaymentScreen';
@@ -27,7 +27,7 @@ interface Guest {
 
 interface ConfirmBookingScreenProps {
   onBack: () => void;
-  workspace: Workspace;
+  propertyData: Property;
   selectedDate: string;
   selectedDateCount: number;
   selectedMembers: Guest[];
@@ -37,7 +37,7 @@ interface ConfirmBookingScreenProps {
 
 export const ConfirmBookingScreen: React.FC<ConfirmBookingScreenProps> = ({
   onBack,
-  workspace,
+  propertyData,
   selectedDate,
   selectedDateCount,
   selectedMembers,
@@ -72,7 +72,7 @@ export const ConfirmBookingScreen: React.FC<ConfirmBookingScreenProps> = ({
   // Conditional rendering for BookingScreen
   if (showBookingScreen) {
     // Replace with your actual BookingScreen import/component
-    return <BookingScreen workspace={workspace} onBack={() => setShowBookingScreen(false)} />;
+    return <BookingScreen propertyId={propertyData._id} onBack={() => setShowBookingScreen(false)} />;
   }
 
   // Conditional rendering for PaymentScreen
@@ -112,7 +112,7 @@ export const ConfirmBookingScreen: React.FC<ConfirmBookingScreenProps> = ({
                 <Ionicons name="business" size={24} color={Colors.primary} />
               </View>
               <View style={styles.workspaceDetails}>
-                <Text style={styles.workspaceName}>{workspace.name}</Text>
+                <Text style={styles.workspaceName}>{propertyData.name}</Text>
                 <View style={styles.locationRow}>
                   <Ionicons name="location" size={14} color={Colors.text.secondary} />
                   <Text style={styles.workspaceLocation}>Thaltej, Ahmedabad</Text>

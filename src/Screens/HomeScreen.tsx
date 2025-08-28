@@ -1,17 +1,18 @@
 import React, { useState, useEffect } from 'react';
 import {
   View,
+  Text,
   StyleSheet,
   ScrollView,
   Alert,
   Share,
 } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
+import { Ionicons } from '@expo/vector-icons';
 import {
   Header,
   SearchBar,
   BottomNavigation,
-  WelcomeOffers,
   ServiceTypeSelector,
   WorkspaceList,
 } from '../components';
@@ -26,18 +27,18 @@ import { ProfileScreen } from './ProfileScreen';
 import { apiService } from '../services/apiService';
 import { Colors } from '../constants/theme';
 import { Location, Workspace, ServiceType, TabNavigationType, Property } from '../types';
+import { useCity } from '../context/CityContext';
 import {
-  mockLocations,
-  mockOffers,
   mockServiceTypes,
   mockWorkspaces,
 } from '../data/mockData';
 
 export const HomeScreen: React.FC = () => {
+  // City context
+  const { state: cityState, setLocation } = useCity();
+  const { selectedLocation } = cityState;
+
   // State management
-  const [selectedLocation, setSelectedLocation] = useState<Location>(
-    mockLocations.find(loc => loc.name === 'Ahmedabad') || mockLocations[0]
-  );
   const [selectedSubLocation, setSelectedSubLocation] = useState('All Locations');
   const [searchQuery, setSearchQuery] = useState('');
   const [activeTab, setActiveTab] = useState<TabNavigationType>('Home');
@@ -45,6 +46,7 @@ export const HomeScreen: React.FC = () => {
   const [showWorkspaceSearch, setShowWorkspaceSearch] = useState(false);
   const [selectedWorkspace, setSelectedWorkspace] = useState<Workspace | null>(null);
   const [bookingWorkspace, setBookingWorkspace] = useState<Workspace | null>(null);
+  const [bookingPropertyId, setBookingPropertyId] = useState<string | null>(null);
   const [showDeskScreen, setShowDeskScreen] = useState(false);
   const [showMeetingRoomScreen, setShowMeetingRoomScreen] = useState(false);
   const [showProfileScreen, setShowProfileScreen] = useState(false);
@@ -81,22 +83,29 @@ export const HomeScreen: React.FC = () => {
     const fetchProperties = async () => {
       try {
         setLoading(true);
-        const response = await apiService.getProperties();
-        if (response.success && response.data && response.data.properties) {
-          const convertedWorkspaces = response.data.properties.map(convertPropertyToWorkspace);
+        console.log(selectedLocation.city);
+        const response = await apiService.getPropertiesByCity(selectedLocation.city, 1, 10);
+        if (response.success && response.allProperties) {
+          console.log('hii')
+          console.log('Fetched properties:', response.allProperties);
+          const convertedWorkspaces = response.allProperties.map(convertPropertyToWorkspace);
           setWorkspaces(convertedWorkspaces);
+        } else {
+          // No properties found for this city
+          setWorkspaces([]);
         }
       } catch (error) {
         console.error('Failed to fetch properties:', error);
-        // Keep using mock data if API fails
-        Alert.alert('Notice', 'Using sample data. Please check your network connection.');
+        // Set empty array instead of using mock data
+        setWorkspaces([]);
+        Alert.alert('Notice', 'Unable to load workspaces. Please check your network connection.');
       } finally {
         setLoading(false);
       }
     };
 
     fetchProperties();
-  }, []);
+  }, [selectedLocation.city]); // Re-fetch when city changes
 
   // Event handlers
   const handleLocationPress = () => {
@@ -122,14 +131,6 @@ export const HomeScreen: React.FC = () => {
     setShowWorkspaceSearch(false);
   };
 
-  const handleOfferPress = (offer: any) => {
-    Alert.alert(
-      'Offer Details',
-      `${offer.title}: ${offer.discount} ${offer.description}\nCode: ${offer.code}`,
-      [{ text: 'Copy Code', onPress: () => console.log('Code copied') }]
-    );
-  };
-
   const handleServicePress = (service: ServiceType) => {
     if (service.name === 'Desk') {
       setActiveTab('Desks');
@@ -152,7 +153,7 @@ export const HomeScreen: React.FC = () => {
   };
 
   const handleBookPress = (workspace: Workspace) => {
-    setBookingWorkspace(workspace);
+    setBookingPropertyId(workspace.id);
   };
 
   const handleFavoritePress = (workspace: Workspace) => {
@@ -217,7 +218,7 @@ export const HomeScreen: React.FC = () => {
     // Check if this is a city change or sub-location change
     if (location.city !== selectedLocation.city) {
       // City has changed - update the main location and reset sub-location
-      setSelectedLocation({
+      setLocation({
         id: location.id,
         name: location.city,
         city: location.city,
@@ -271,16 +272,20 @@ export const HomeScreen: React.FC = () => {
         workspace={selectedWorkspace}
         propertyId={selectedWorkspace.id}
         onBack={() => setSelectedWorkspace(null)}
+        onBookNow={(propertyId) => {
+          setSelectedWorkspace(null);
+          setBookingPropertyId(propertyId);
+        }}
       />
     );
   }
 
-  // Show booking screen if booking workspace is selected
-  if (bookingWorkspace) {
+  // Show booking screen if booking property is selected
+  if (bookingPropertyId) {
     return (
       <BookingScreen
-        workspace={bookingWorkspace}
-        onBack={() => setBookingWorkspace(null)}
+        propertyId={bookingPropertyId}
+        onBack={() => setBookingPropertyId(null)}
       />
     );
   }
@@ -301,7 +306,6 @@ export const HomeScreen: React.FC = () => {
         <StatusBar style="dark" backgroundColor={Colors.white} />
         
         <DeskScreen
-          selectedLocation={selectedLocation}
           selectedSubLocation={selectedSubLocation}
           onBack={() => {
             setActiveTab('Home');
@@ -326,7 +330,6 @@ export const HomeScreen: React.FC = () => {
         <StatusBar style="dark" backgroundColor={Colors.white} />
         
         <MeetingRoomScreen
-          selectedLocation={selectedLocation}
           selectedSubLocation={selectedSubLocation}
           onBack={() => {
             setActiveTab('Home');
@@ -394,25 +397,37 @@ export const HomeScreen: React.FC = () => {
           editable={false}
         />
 
-        <WelcomeOffers
-          offers={mockOffers}
-          onOfferPress={handleOfferPress}
-        />
-
         <ServiceTypeSelector
           serviceTypes={mockServiceTypes}
           onServicePress={handleServicePress}
         />
 
-        <WorkspaceList
-          workspaces={filteredWorkspaces}
-          selectedLocation={selectedSubLocation === 'All Locations' ? selectedLocation.city : selectedSubLocation}
-          onWorkspacePress={handleWorkspacePress}
-          onBookPress={handleBookPress}
-          onFavoritePress={handleFavoritePress}
-          onSharePress={handleSharePress}
-          onViewAllPress={handleViewAllPress}
-        />
+        {filteredWorkspaces.length > 0 ? (
+          <WorkspaceList
+            workspaces={filteredWorkspaces}
+            selectedLocation={selectedSubLocation === 'All Locations' ? selectedLocation.city : selectedSubLocation}
+            onWorkspacePress={handleWorkspacePress}
+            onBookPress={handleBookPress}
+            onFavoritePress={handleFavoritePress}
+            onSharePress={handleSharePress}
+            onViewAllPress={handleViewAllPress}
+          />
+        ) : !loading && (
+          <View style={styles.emptyStateContainer}>
+            <Ionicons 
+              name="business-outline" 
+              size={60} 
+              color={Colors.text.light} 
+              style={styles.emptyStateIcon}
+            />
+            <Text style={styles.emptyStateTitle}>
+              No WorkSpace in this Area
+            </Text>
+            <Text style={styles.emptyStateSubtitle}>
+              We are working on to bring WorkSpace here
+            </Text>
+          </View>
+        )}
       </ScrollView>
 
       <BottomNavigation
@@ -433,5 +448,29 @@ const styles = StyleSheet.create({
   },
   scrollContent: {
     flexGrow: 1,
+  },
+  emptyStateContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingHorizontal: 32,
+    paddingVertical: 64,
+    minHeight: 300,
+  },
+  emptyStateIcon: {
+    marginBottom: 24,
+  },
+  emptyStateTitle: {
+    fontSize: 18,
+    fontWeight: '600',
+    color: Colors.text.primary,
+    textAlign: 'center',
+    marginBottom: 8,
+  },
+  emptyStateSubtitle: {
+    fontSize: 14,
+    color: Colors.text.secondary,
+    textAlign: 'center',
+    lineHeight: 20,
   },
 });

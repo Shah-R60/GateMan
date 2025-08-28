@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   View,
   Text,
@@ -6,11 +6,13 @@ import {
   TouchableOpacity,
   ScrollView,
   Alert,
+  ActivityIndicator,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { Colors, Spacing, FontSizes, FontWeights, BorderRadius } from '../constants/theme';
-import { Workspace } from '../types';
+import { Workspace, Property } from '../types';
+import { apiService } from '../services/apiService';
 import { DateSelectionScreen } from './DateSelectionScreen';
 import { MembersScreen } from './MembersScreen';
 import { CancellationPolicyScreen } from './CancellationPolicyScreen';
@@ -26,14 +28,17 @@ interface Guest {
 }
 
 interface BookingScreenProps {
-  workspace: Workspace;
+  propertyId: string;
   onBack: () => void;
 }
 
 export const BookingScreen: React.FC<BookingScreenProps> = ({
-  workspace,
+  propertyId,
   onBack,
 }) => {
+  const [propertyData, setPropertyData] = useState<Property | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const [selectedDate, setSelectedDate] = useState<string>('');
   const [selectedDateCount, setSelectedDateCount] = useState<number>(0);
   const [selectedMembers, setSelectedMembers] = useState<Guest[]>([
@@ -48,6 +53,33 @@ export const BookingScreen: React.FC<BookingScreenProps> = ({
   const [selectedSeatingType, setSelectedSeatingType] = useState('Open Desk');
   const [showMembersPicker, setShowMembersPicker] = useState(false);
   const [showSeatingPicker, setShowSeatingPicker] = useState(false);
+
+  // Fetch property details using propertyId
+  useEffect(() => {
+    const fetchPropertyDetails = async () => {
+      if (!propertyId) {
+        setError('Property ID is required');
+        setLoading(false);
+        return;
+      }
+
+      try {
+        setLoading(true);
+        setError(null);
+        const property = await apiService.getPropertyById(propertyId);
+        setPropertyData(property);
+        console.log('BookingScreen - Fetched property details:', property);
+      } catch (err) {
+        console.error('Failed to fetch property details:', err);
+        setError('Failed to load property details. Please try again.');
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchPropertyDetails();
+  }, [propertyId]);
+
   const [showDateSelection, setShowDateSelection] = useState(false);
   const [showMembersScreen, setShowMembersScreen] = useState(false);
   const [showCancellationPolicy, setShowCancellationPolicy] = useState(false);
@@ -62,9 +94,11 @@ export const BookingScreen: React.FC<BookingScreenProps> = ({
   };
 
   const getWorkspaceType = () => {
-    // Determine if this is a desk or meeting room based on workspace data
-    if (workspace.name.toLowerCase().includes('meeting') || 
-        workspace.seatingTypes?.some(type => type.type === 'Meeting Room')) {
+    // Determine if this is a desk or meeting room based on property data
+    if (!propertyData) return 'Desk';
+    
+    if (propertyData.name.toLowerCase().includes('meeting') || 
+        propertyData.type === 'Meeting Room') {
       return 'Meeting Room';
     }
     return 'Desk';
@@ -73,7 +107,9 @@ export const BookingScreen: React.FC<BookingScreenProps> = ({
   const workspaceType = getWorkspaceType();
   
   const calculatePrice = () => {
-    let basePrice = workspace.price;
+    if (!propertyData) return 0;
+    
+    let basePrice = propertyData.totalCostPerSeat;
     if (selectedSeatingType === 'Private Desk') {
       basePrice = basePrice * 1.5;
     } else if (selectedSeatingType === 'Meeting Room') {
@@ -83,6 +119,29 @@ export const BookingScreen: React.FC<BookingScreenProps> = ({
     const memberCount = getSelectedMemberCount();
     return Math.round(basePrice * memberCount * totalDateCount);
   };
+
+  // Loading state
+  if (loading) {
+    return (
+      <View style={styles.centerContainer}>
+        <ActivityIndicator size="large" color={Colors.primary} />
+        <Text style={styles.loadingText}>Loading property details...</Text>
+      </View>
+    );
+  }
+
+  // Error state
+  if (error || !propertyData) {
+    return (
+      <View style={styles.centerContainer}>
+        <Ionicons name="alert-circle" size={48} color={Colors.error} />
+        <Text style={styles.errorText}>{error || 'Property not found'}</Text>
+        <TouchableOpacity style={styles.retryButton} onPress={onBack}>
+          <Text style={styles.retryButtonText}>Go Back</Text>
+        </TouchableOpacity>
+      </View>
+    );
+  }
 
   const handleContinue = () => {
     if (selectedDateCount === 0) {
@@ -109,7 +168,7 @@ export const BookingScreen: React.FC<BookingScreenProps> = ({
     return (
       <ConfirmBookingScreen
         onBack={() => setShowConfirmBooking(false)}
-        workspace={workspace}
+        propertyData={propertyData}
         selectedDate={selectedDate}
         selectedDateCount={selectedDateCount}
         selectedMembers={selectedMembers}
@@ -133,7 +192,7 @@ export const BookingScreen: React.FC<BookingScreenProps> = ({
     return (
       <CancellationPolicyScreen
         onBack={() => setShowCancellationPolicy(false)}
-        workspaceName={workspace.name}
+        workspaceName={propertyData.name}
       />
     );
   }
@@ -153,7 +212,7 @@ export const BookingScreen: React.FC<BookingScreenProps> = ({
   if (showDateSelection) {
     return (
       <DateSelectionScreen
-        workspace={workspace}
+        propertyData={propertyData}
         onBack={() => setShowDateSelection(false)}
         onDateSelect={handleDateSelection}
         selectedDate={selectedDate}
@@ -288,7 +347,7 @@ export const BookingScreen: React.FC<BookingScreenProps> = ({
 
         {/* Workspace Info */}
         <View style={styles.workspaceInfo}>
-          <Text style={styles.workspaceName}>{workspace.name}</Text>
+          <Text style={styles.workspaceName}>{propertyData.name}</Text>
           <View style={styles.workspaceDetails}>
             <Ionicons name="time-outline" size={16} color={Colors.text.secondary} />
             <Text style={styles.workspaceDetailText}>9:00 am - 9:00 pm (Mon to Sat)</Text>
@@ -595,5 +654,34 @@ const styles = StyleSheet.create({
     color: Colors.white,
     fontSize: FontSizes.md,
     fontWeight: FontWeights.semibold,
+  },
+  centerContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: Spacing.lg,
+  },
+  loadingText: {
+    fontSize: FontSizes.md,
+    color: Colors.text.secondary,
+    marginTop: Spacing.md,
+  },
+  errorText: {
+    fontSize: FontSizes.md,
+    color: Colors.error,
+    textAlign: 'center',
+    marginVertical: Spacing.md,
+  },
+  retryButton: {
+    backgroundColor: Colors.primary,
+    paddingHorizontal: Spacing.lg,
+    paddingVertical: Spacing.md,
+    borderRadius: BorderRadius.md,
+    marginTop: Spacing.md,
+  },
+  retryButtonText: {
+    color: Colors.white,
+    fontSize: FontSizes.md,
+    fontWeight: FontWeights.medium,
   },
 });

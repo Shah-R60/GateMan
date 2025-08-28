@@ -13,6 +13,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { Colors, Spacing, FontSizes, FontWeights, BorderRadius } from '../constants/theme';
 import { Location } from '../types';
 import { CitySearchScreen } from './CitySearchScreen';
+import { useCity } from '../context/CityContext';
 
 interface LocationSearchScreenProps {
   currentLocation: Location;
@@ -36,10 +37,13 @@ export const LocationSearchScreen: React.FC<LocationSearchScreenProps> = ({
   onLocationSelect,
   onBack,
 }) => {
+  // Use city context
+  const { state: cityState, setLocation } = useCity();
+  const { selectedLocation } = cityState;
+  
   const [searchQuery, setSearchQuery] = useState('');
   const [showNearMe, setShowNearMe] = useState(false);
   const [showCitySearch, setShowCitySearch] = useState(false);
-  const [selectedCity, setSelectedCity] = useState(currentLocation.city);
 
   const filteredLocations = popularLocations.filter(location =>
     location.toLowerCase().includes(searchQuery.toLowerCase())
@@ -49,8 +53,8 @@ export const LocationSearchScreen: React.FC<LocationSearchScreenProps> = ({
     // Use the currently selected city and update the sub-location
     const newLocation: Location = {
       id: locationName.toLowerCase().replace(/\s+/g, '-'),
-      name: locationName === 'All Locations' ? selectedCity : locationName,
-      city: selectedCity, // Use the selected city
+      name: locationName === 'All Locations' ? selectedLocation.city : locationName,
+      city: selectedLocation.city, // Use the selected city
     };
     onLocationSelect(newLocation);
     onBack();
@@ -65,16 +69,10 @@ export const LocationSearchScreen: React.FC<LocationSearchScreenProps> = ({
   };
 
   const handleCitySelect = (city: string) => {
-    setSelectedCity(city);
     setShowCitySearch(false);
     
-    // Immediately update the location with the new city
-    const newLocation: Location = {
-      id: city.toLowerCase().replace(/\s+/g, '-'),
-      name: city,
-      city: city,
-    };
-    onLocationSelect(newLocation);
+    // The city context is already updated by CitySearchScreen
+    // Just close the search and navigate back
     onBack(); // Go back to HomeScreen after city selection
   };
 
@@ -86,8 +84,6 @@ export const LocationSearchScreen: React.FC<LocationSearchScreenProps> = ({
   if (showCitySearch) {
     return (
       <CitySearchScreen
-        selectedCity={selectedCity}
-        onCitySelect={handleCitySelect}
         onClose={handleCitySearchClose}
       />
     );
@@ -104,14 +100,14 @@ export const LocationSearchScreen: React.FC<LocationSearchScreenProps> = ({
         </TouchableOpacity>
         <View style={styles.headerSpacer} />
         <TouchableOpacity style={styles.cityContainer} onPress={handleCityPress}>
-          <Text style={styles.cityText}>{selectedCity}</Text>
+          <Text style={styles.cityText}>{selectedLocation.city}</Text>
           <Ionicons name="chevron-down" size={16} color={Colors.text.secondary} />
         </TouchableOpacity>
       </View>
 
       {/* Title */}
       <View style={styles.titleContainer}>
-        <Text style={styles.title}>Search locations in {selectedCity}</Text>
+        <Text style={styles.title}>Search locations in {selectedLocation.city}</Text>
       </View>
 
       {/* Search Bar */}
@@ -125,7 +121,7 @@ export const LocationSearchScreen: React.FC<LocationSearchScreenProps> = ({
           />
           <TextInput
             style={styles.searchInput}
-            placeholder={`Search for locations in ${selectedCity}`}
+            placeholder={`Search for locations in ${selectedLocation.city}`}
             placeholderTextColor={Colors.text.light}
             value={searchQuery}
             onChangeText={setSearchQuery}

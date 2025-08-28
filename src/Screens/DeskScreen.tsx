@@ -17,9 +17,9 @@ import { FilterModal, DatePicker } from '../components';
 import { WorkspaceSearchScreen } from './WorkspaceSearchScreen';
 import { apiService } from '../services/apiService';
 import { ImageCarousel } from '../components/common/ImageCarousel';
+import { useCity } from '../context/CityContext';
 
 interface DeskScreenProps {
-  selectedLocation: Location;
   selectedSubLocation: string;
   onBack: () => void;
   onWorkspacePress?: (workspace: Workspace) => void;
@@ -27,12 +27,14 @@ interface DeskScreenProps {
 }
 
 export const DeskScreen: React.FC<DeskScreenProps> = ({
-  selectedLocation,
   selectedSubLocation,
   onBack,
   onWorkspacePress,
   onBookPress,
 }) => {
+  // Use city context
+  const { state: cityState } = useCity();
+  const { selectedLocation } = cityState;
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedDate, setSelectedDate] = useState('Tomorrow (21 Aug)');
   const [showDatePicker, setShowDatePicker] = useState(false);
@@ -88,26 +90,26 @@ export const DeskScreen: React.FC<DeskScreenProps> = ({
     const fetchProperties = async () => {
       try {
         setLoading(true);
-        const response = await apiService.getProperties();
-        if (response.success && response.data && response.data.properties) {
-          // Filter properties to only show "Coworking Space" types
-          const coworkingSpaces = response.data.properties.filter(
-            property => property.type === "Coworking Space"
-          );
-          const convertedWorkspaces = coworkingSpaces.map(convertPropertyToWorkspace);
+        const response = await apiService.getPropertiesByCityAndType(selectedLocation.city, 'Coworking Space', 1, 10);
+        if (response.success && response.allProperties) {
+          console.log("bahi");
+          const convertedWorkspaces = response.allProperties.map(convertPropertyToWorkspace);
           setDeskWorkspaces(convertedWorkspaces);
+        } else {
+          // No properties found for this city and type
+          setDeskWorkspaces([]);
         }
       } catch (error) {
         console.error('Failed to fetch properties:', error);
-        // Keep using empty array if API fails
-        Alert.alert('Notice', 'Unable to load workspaces. Please check your network connection.');
+        // Set empty array instead of showing alert
+        setDeskWorkspaces([]);
       } finally {
         setLoading(false);
       }
     };
 
     fetchProperties();
-  }, []);
+  }, [selectedLocation.city]); // Re-fetch when city changes
 
   const handleDateSelect = (date: string) => {
     setSelectedDate(date);
@@ -287,7 +289,14 @@ export const DeskScreen: React.FC<DeskScreenProps> = ({
             </View>
           ) : deskWorkspaces.length === 0 ? (
             <View style={styles.emptyContainer}>
-              <Text style={styles.emptyText}>No workspaces found</Text>
+              <Ionicons 
+                name="business-outline" 
+                size={60} 
+                color={Colors.text.light} 
+                style={styles.emptyIcon}
+              />
+              <Text style={styles.emptyTitle}>No WorkSpace available in this area</Text>
+              <Text style={styles.emptySubtitle}>We are working to bring WorkSpace here soon</Text>
             </View>
           ) : (
             deskWorkspaces.map((workspace) => (
@@ -757,6 +766,23 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     paddingVertical: Spacing.xl,
+    paddingHorizontal: Spacing.xl,
+  },
+  emptyIcon: {
+    marginBottom: Spacing.lg,
+  },
+  emptyTitle: {
+    fontSize: FontSizes.lg,
+    fontWeight: FontWeights.semibold,
+    color: Colors.text.primary,
+    textAlign: 'center',
+    marginBottom: Spacing.sm,
+  },
+  emptySubtitle: {
+    fontSize: FontSizes.md,
+    color: Colors.text.secondary,
+    textAlign: 'center',
+    lineHeight: 20,
   },
   emptyText: {
     fontSize: FontSizes.md,

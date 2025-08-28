@@ -14,10 +14,9 @@ import { Ionicons } from '@expo/vector-icons';
 import * as LocationService from 'expo-location';
 import { Colors, Spacing, FontSizes, FontWeights, BorderRadius } from '../constants/theme';
 import { Location } from '../types';
+import { useCity } from '../context/CityContext';
 
 interface CitySearchScreenProps {
-  selectedCity: string;
-  onCitySelect: (city: string) => void;
   onClose: () => void;
 }
 
@@ -25,7 +24,7 @@ const cities = [
   { id: '1', name: 'Ahmedabad', icon: 'business' },
   { id: '2', name: 'Bangalore', icon: 'business' },
   { id: '3', name: 'Chennai', icon: 'business' },
-  { id: '4', name: 'Delhi', icon: 'business' },
+  { id: '4', name: 'New Delhi', icon: 'business' },
   { id: '5', name: 'Gurgaon', icon: 'business' },
   { id: '6', name: 'Hyderabad', icon: 'business' },
   { id: '7', name: 'Mumbai', icon: 'business' },
@@ -34,12 +33,14 @@ const cities = [
 ];
 
 export const CitySearchScreen: React.FC<CitySearchScreenProps> = ({
-  selectedCity,
-  onCitySelect,
   onClose,
 }) => {
+  // Use city context
+  const { state: cityState, setLocation } = useCity();
+  const { selectedLocation } = cityState;
+  
   const [searchQuery, setSearchQuery] = useState('');
-  const [tempSelectedCity, setTempSelectedCity] = useState(selectedCity);
+  const [tempSelectedCity, setTempSelectedCity] = useState(selectedLocation.city);
   const [isDetectingLocation, setIsDetectingLocation] = useState(false);
 
   const filteredCities = cities.filter(city =>
@@ -51,7 +52,15 @@ export const CitySearchScreen: React.FC<CitySearchScreenProps> = ({
   };
 
   const handleSelectCity = () => {
-    onCitySelect(tempSelectedCity);
+    // Create new location object for the selected city
+    const newLocation: Location = {
+      id: tempSelectedCity.toLowerCase().replace(/\s+/g, '-'),
+      name: tempSelectedCity,
+      city: tempSelectedCity,
+    };
+    
+    // Update the context
+    setLocation(newLocation);
     onClose();
   };
 

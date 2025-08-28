@@ -22,6 +22,7 @@ interface WorkspaceDetailsScreenProps {
   workspace: Workspace;
   propertyId: string;
   onBack: () => void;
+  onBookNow: (propertyId: string) => void;
 }
 
 interface Review {
@@ -100,6 +101,7 @@ export const WorkspaceDetailsScreen: React.FC<WorkspaceDetailsScreenProps> = ({
   workspace,
   propertyId,
   onBack,
+  onBookNow,
 }) => {
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
   const [showAllAmenities, setShowAllAmenities] = useState(false);
@@ -150,7 +152,55 @@ export const WorkspaceDetailsScreen: React.FC<WorkspaceDetailsScreenProps> = ({
         'https://images.unsplash.com/photo-1556761175-4b46a572b786?w=500',
       ];
 
-  const visibleAmenities = showAllAmenities ? amenitiesList : amenitiesList.slice(0, 10);
+  // Create amenities list from property data or use default
+  const getAmenitiesList = (): Amenity[] => {
+    if (propertyData && propertyData.amenities) {
+      return propertyData.amenities.map((amenity, index) => ({
+        id: `${index + 1}`,
+        name: amenity,
+        icon: getAmenityIcon(amenity),
+        isPaid: false, // You can set this based on your business logic
+      }));
+    }
+    return amenitiesList;
+  };
+
+  // Map amenity names to icons
+  const getAmenityIcon = (amenityName: string): string => {
+    const iconMap: { [key: string]: string } = {
+      'Custom Branding': 'star',
+      'Private Gym': 'fitness',
+      'Full-Service Cafeteria': 'restaurant',
+      'IT Support': 'laptop',
+      'Wifi': 'wifi',
+      'Parking': 'car',
+      'Printer': 'print',
+      'Tea': 'cafe',
+      'Coffee': 'cafe',
+      'Water': 'water',
+      'Chairs & Desks': 'desktop',
+      'Washroom': 'man',
+      'Meeting Rooms': 'people',
+      'Air Conditioner': 'snow',
+      'Charging': 'battery-charging',
+      'Power Backup': 'flash',
+      'Security': 'shield',
+      'First Aid': 'medical',
+    };
+    
+    // Try to find a partial match
+    for (const [key, icon] of Object.entries(iconMap)) {
+      if (amenityName.toLowerCase().includes(key.toLowerCase()) || 
+          key.toLowerCase().includes(amenityName.toLowerCase())) {
+        return icon;
+      }
+    }
+    
+    return 'checkmark-circle'; // Default icon
+  };
+
+  const dynamicAmenitiesList = getAmenitiesList();
+  const visibleAmenities = showAllAmenities ? dynamicAmenitiesList : dynamicAmenitiesList.slice(0, 10);
 
   const renderStarRating = (rating: number) => {
     return Array.from({ length: 5 }, (_, index) => (
@@ -187,8 +237,8 @@ export const WorkspaceDetailsScreen: React.FC<WorkspaceDetailsScreenProps> = ({
   };
 
   return (
-    <>
-      <StatusBar style="light" backgroundColor="transparent" translucent />
+    <SafeAreaView style={styles.safeAreaContainer}>
+      <StatusBar style="dark" backgroundColor={Colors.white} />
       
       {/* Loading State */}
       {loading && (
@@ -226,7 +276,7 @@ export const WorkspaceDetailsScreen: React.FC<WorkspaceDetailsScreenProps> = ({
           
           {/* Header Overlay */}
           <View style={styles.headerOverlay}>
-            <SafeAreaView style={styles.headerSafeArea}>
+            <View style={styles.headerSafeArea}>
               <View style={styles.headerActions}>
                 <TouchableOpacity style={styles.headerButton} onPress={onBack}>
                   <Ionicons name="arrow-back" size={24} color={Colors.white} />
@@ -240,7 +290,7 @@ export const WorkspaceDetailsScreen: React.FC<WorkspaceDetailsScreenProps> = ({
                   </TouchableOpacity>
                 </View>
               </View>
-            </SafeAreaView>
+            </View>
           </View>
 
           {/* Image Navigation */}
@@ -302,20 +352,6 @@ export const WorkspaceDetailsScreen: React.FC<WorkspaceDetailsScreenProps> = ({
             </View>
           </View>
 
-          {/* Offers */}
-          <View style={styles.offersSection}>
-            <Text style={styles.sectionTitle}>Offers at this workspace</Text>
-            <View style={styles.offerCard}>
-              <View style={styles.offerIcon}>
-                <Text style={styles.offerPercentage}>20%</Text>
-              </View>
-              <View style={styles.offerContent}>
-                <Text style={styles.offerTitle}>Get 20% OFF on this workspace every Saturday</Text>
-                <Text style={styles.offerCode}>Use: SATURDAY20 *Tap for Details</Text>
-              </View>
-            </View>
-          </View>
-
           {/* Overview */}
           <View style={styles.section}>
             <Text style={styles.sectionTitle}>Overview</Text>
@@ -324,18 +360,32 @@ export const WorkspaceDetailsScreen: React.FC<WorkspaceDetailsScreenProps> = ({
               <Text style={styles.overviewLabel}>Workspace Timings</Text>
               <View style={styles.timingItem}>
                 <Ionicons name="time-outline" size={16} color={Colors.text.secondary} />
-                <Text style={styles.timingText}>9:00 am - 9:00 pm (Mon to Sat)</Text>
+                <Text style={styles.timingText}>
+                  {propertyData 
+                    ? propertyData.isSaturdayOpened 
+                      ? "9:00 am - 9:00 pm (Mon to Sat)"
+                      : "9:00 am - 9:00 pm (Mon to Fri)"
+                    : "9:00 am - 9:00 pm (Mon to Sat)"
+                  }
+                </Text>
               </View>
               <View style={styles.timingItem}>
                 <Ionicons name="time-outline" size={16} color={Colors.text.secondary} />
-                <Text style={styles.timingText}>Closed (Sun)</Text>
+                <Text style={styles.timingText}>
+                  {propertyData 
+                    ? propertyData.isSundayOpened 
+                      ? "9:00 am - 9:00 pm (Sun)"
+                      : "Closed (Sun)"
+                    : "Closed (Sun)"
+                  }
+                </Text>
               </View>
             </View>
 
             <View style={styles.overviewItem}>
               <Text style={styles.overviewLabel}>Top amenities</Text>
               <View style={styles.topAmenities}>
-                {amenitiesList.slice(0, 4).map((amenity) => (
+                {dynamicAmenitiesList.slice(0, 4).map((amenity) => (
                   <View key={amenity.id} style={styles.amenityItem}>
                     <Ionicons 
                       name={renderAmenityIcon(amenity.icon)} 
@@ -359,12 +409,47 @@ export const WorkspaceDetailsScreen: React.FC<WorkspaceDetailsScreenProps> = ({
               </View>
             </View>
 
+            {propertyData && (
+              <View style={styles.overviewItem}>
+                <Text style={styles.overviewLabel}>Property Details</Text>
+                <View style={styles.propertyDetails}>
+                  <View style={styles.propertyDetailItem}>
+                    <Ionicons name="people" size={16} color={Colors.text.secondary} />
+                    <Text style={styles.propertyDetailText}>
+                      Seating Capacity: {propertyData.seatingCapacity}
+                    </Text>
+                  </View>
+                  <View style={styles.propertyDetailItem}>
+                    <Ionicons name="resize" size={16} color={Colors.text.secondary} />
+                    <Text style={styles.propertyDetailText}>
+                      Total Area: {propertyData.totalArea} sq ft
+                    </Text>
+                  </View>
+                  <View style={styles.propertyDetailItem}>
+                    <Ionicons name="layers" size={16} color={Colors.text.secondary} />
+                    <Text style={styles.propertyDetailText}>
+                      Floor Size: {propertyData.floorSize} sq ft
+                    </Text>
+                  </View>
+                  <View style={styles.propertyDetailItem}>
+                    <Ionicons name="star" size={16} color={Colors.text.secondary} />
+                    <Text style={styles.propertyDetailText}>
+                      Furnishing: {propertyData.furnishingLevel.replace('-', ' ').toUpperCase()}
+                    </Text>
+                  </View>
+                </View>
+              </View>
+            )}
+
             <View style={styles.overviewItem}>
               <Text style={styles.overviewLabel}>Address</Text>
               <View style={styles.addressContainer}>
                 <Ionicons name="location" size={16} color={Colors.text.secondary} />
                 <Text style={styles.addressText}>
-                  001 Mayuransh Elanza, Nr. Parekh's Hospital, Shyamal Crossroad, 132 Feet Ring Rd, Satellite, Ahmedabad, Gujarat
+                  {propertyData 
+                    ? `${propertyData.address}, ${propertyData.city}, ${propertyData.state} - ${propertyData.pincode}`
+                    : "001 Mayuransh Elanza, Nr. Parekh's Hospital, Shyamal Crossroad, 132 Feet Ring Rd, Satellite, Ahmedabad, Gujarat"
+                  }
                 </Text>
               </View>
               <TouchableOpacity style={styles.mapButton}>
@@ -421,7 +506,7 @@ export const WorkspaceDetailsScreen: React.FC<WorkspaceDetailsScreenProps> = ({
               ))}
             </View>
 
-            {!showAllAmenities && amenitiesList.length > 10 && (
+            {!showAllAmenities && dynamicAmenitiesList.length > 10 && (
               <TouchableOpacity 
                 style={styles.viewAllButton}
                 onPress={() => setShowAllAmenities(true)}
@@ -440,7 +525,7 @@ export const WorkspaceDetailsScreen: React.FC<WorkspaceDetailsScreenProps> = ({
             <View style={styles.expertContent}>
               <Text style={styles.expertTitle}>Still have doubts?</Text>
               <TouchableOpacity>
-                <Text style={styles.expertLink}>Connect with myHQ experts →</Text>
+                <Text style={styles.expertLink}>Connect with GateMan experts →</Text>
               </TouchableOpacity>
             </View>
           </View>
@@ -619,39 +704,46 @@ export const WorkspaceDetailsScreen: React.FC<WorkspaceDetailsScreenProps> = ({
 
         {/* Fixed Bottom Section */}
         <View style={styles.bottomSection}>
-          <View style={styles.offerBanner}>
-            <Ionicons name="checkmark-circle" size={16} color={Colors.success} />
-            <Text style={styles.offerBannerText}>
-              Get 50% OFF on your first booking. Use MYHQ50 + More Offers!
-            </Text>
-          </View>
-          
           <View style={styles.bookingSection}>
             <View style={styles.priceSection}>
-              <Text style={styles.priceLabel}>Price (₹credits/day/⚡)</Text>
+              <Text style={styles.priceLabel}>
+                Price (₹{propertyData ? 'cost/seat' : 'credits'}/day/⚡)
+              </Text>
               <View style={styles.priceContainer}>
-                <Text style={styles.oldPrice}>₹500</Text>
-                <Text style={styles.currentPrice}>350</Text>
+                <Text style={styles.oldPrice}>
+                  ₹{propertyData ? Math.round(propertyData.totalCostPerSeat * 1.2) : '500'}
+                </Text>
+                <Text style={styles.currentPrice}>
+                  {propertyData ? propertyData.totalCostPerSeat : '350'}
+                </Text>
                 <View style={styles.bestPriceTag}>
                   <Ionicons name="checkmark-circle" size={12} color={Colors.success} />
-                  <Text style={styles.bestPriceText}>Best Price</Text>
+                  <Text style={styles.bestPriceText}>
+                    {propertyData?.isPriceNegotiable ? 'Negotiable' : 'Best Price'}
+                  </Text>
                 </View>
               </View>
-              <Text style={styles.promoCode}>Use MYHQ50</Text>
             </View>
             
-            <TouchableOpacity style={styles.bookButton}>
+            <TouchableOpacity 
+              style={styles.bookButton}
+              onPress={() => onBookNow(propertyId)}
+            >
               <Text style={styles.bookButtonText}>Book Now</Text>
             </TouchableOpacity>
           </View>
         </View>
       </View>
       )}
-    </>
+    </SafeAreaView>
   );
 };
 
 const styles = StyleSheet.create({
+  safeAreaContainer: {
+    flex: 1,
+    backgroundColor: Colors.white,
+  },
   container: {
     flex: 1,
     backgroundColor: Colors.white,
@@ -673,7 +765,7 @@ const styles = StyleSheet.create({
     zIndex: 10,
   },
   headerSafeArea: {
-    paddingTop: 10,
+    paddingTop: 16,
   },
   headerActions: {
     flexDirection: 'row',
@@ -778,50 +870,11 @@ const styles = StyleSheet.create({
     fontSize: FontSizes.xs,
     color: Colors.text.secondary,
   },
-  offersSection: {
-    padding: Spacing.md,
-    backgroundColor: Colors.background,
-  },
   sectionTitle: {
     fontSize: FontSizes.lg,
     fontWeight: FontWeights.semibold,
     color: Colors.text.primary,
     marginBottom: Spacing.sm,
-  },
-  offerCard: {
-    flexDirection: 'row',
-    backgroundColor: Colors.success + '10',
-    padding: Spacing.md,
-    borderRadius: BorderRadius.md,
-    borderLeftWidth: 4,
-    borderLeftColor: Colors.success,
-  },
-  offerIcon: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    backgroundColor: Colors.success,
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginRight: Spacing.sm,
-  },
-  offerPercentage: {
-    color: Colors.white,
-    fontSize: FontSizes.sm,
-    fontWeight: FontWeights.bold,
-  },
-  offerContent: {
-    flex: 1,
-  },
-  offerTitle: {
-    fontSize: FontSizes.md,
-    color: Colors.text.primary,
-    marginBottom: 4,
-  },
-  offerCode: {
-    fontSize: FontSizes.sm,
-    color: Colors.success,
-    fontWeight: FontWeights.medium,
   },
   section: {
     padding: Spacing.md,
@@ -1249,20 +1302,6 @@ const styles = StyleSheet.create({
     borderTopWidth: 1,
     borderTopColor: Colors.border,
   },
-  offerBanner: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: Colors.success + '10',
-    paddingHorizontal: Spacing.md,
-    paddingVertical: Spacing.sm,
-    gap: Spacing.xs,
-  },
-  offerBannerText: {
-    fontSize: FontSizes.sm,
-    color: Colors.success,
-    fontWeight: FontWeights.medium,
-    flex: 1,
-  },
   bookingSection: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -1307,10 +1346,6 @@ const styles = StyleSheet.create({
     fontSize: FontSizes.xs,
     color: Colors.success,
     fontWeight: FontWeights.medium,
-  },
-  promoCode: {
-    fontSize: FontSizes.xs,
-    color: Colors.success,
   },
   bookButton: {
     backgroundColor: Colors.primary,
@@ -1367,5 +1402,19 @@ const styles = StyleSheet.create({
     fontSize: FontSizes.md,
     fontWeight: FontWeights.medium,
     color: Colors.text.primary,
+  },
+  propertyDetails: {
+    gap: Spacing.sm,
+  },
+  propertyDetailItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.sm,
+    paddingVertical: Spacing.xs,
+  },
+  propertyDetailText: {
+    fontSize: FontSizes.sm,
+    color: Colors.text.secondary,
+    flex: 1,
   },
 });

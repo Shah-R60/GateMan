@@ -115,6 +115,62 @@ class ApiService {
     }
   }
 
+  async getPropertiesByCity(city: string, page: number = 1, limit: number = 10): Promise<PropertyApiResponse> {
+    try {
+      const response = await fetch('http://192.168.137.1:3004/api/v1/properties/client/all-verified-properties-with-city', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          city,
+          page,
+          limit,
+        }),
+      });
+      console.log('hii');
+      
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+      
+      const data = await response.json();
+      console.log(data);  
+      return data;
+    } catch (error) {
+      console.error('Failed to fetch properties by city:', error);
+      throw error;
+    }
+  }
+
+  async getPropertiesByCityAndType(city: string, type: string, page: number = 1, limit: number = 10): Promise<PropertyApiResponse> {
+    try {
+      const response = await fetch('http://192.168.137.1:3004/api/v1/properties/client/all-verified-properties-with-city-type', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          city,
+          type,
+          page,
+          limit,
+        }),
+      });
+      
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+      console.log('by');
+      const data = await response.json();
+      console.log(data);
+      return data;
+    } catch (error) {
+      console.error('Failed to fetch properties by city and type:', error);
+      throw error;
+    }
+  }
+
   async getPropertyById(propertyId: string): Promise<Property> {
     try {
       const response = await fetch(`http://192.168.137.1:3004/api/v1/properties/${propertyId}`);

@@ -60,25 +60,8 @@ export interface Property {
 
 export interface PropertyApiResponse {
   success: boolean;
-  data: {
-    properties: Property[];
-    pagination: {
-      currentPage: number;
-      totalPages: number;
-      totalProperties: number;
-      hasNextPage: boolean;
-      hasPrevPage: boolean;
-    };
-    filters: {
-      type: string | null;
-      city: string | null;
-      state: string | null;
-      minCost: string | null;
-      maxCost: string | null;
-      amenities: string[] | null;
-      seatingCapacity: string | null;
-    };
-  };
+  message: string;
+  allProperties: Property[];
 }
 
 export interface SeatingType {

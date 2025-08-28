@@ -18,20 +18,22 @@ import { WorkspaceSearchScreen } from './WorkspaceSearchScreen';
 import { RoomSlotSelectionScreen } from './RoomSlotSelectionScreen';
 import { apiService } from '../services/apiService';
 import { ImageCarousel } from '../components/common/ImageCarousel';
+import { useCity } from '../context/CityContext';
 
 interface MeetingRoomScreenProps {
-  selectedLocation: Location;
   selectedSubLocation: string;
   onBack: () => void;
   onWorkspacePress?: (workspace: Workspace) => void;
 }
 
 export const MeetingRoomScreen: React.FC<MeetingRoomScreenProps> = ({
-  selectedLocation,
   selectedSubLocation,
   onBack,
   onWorkspacePress,
 }) => {
+  // Use city context
+  const { state: cityState } = useCity();
+  const { selectedLocation } = cityState;
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedDate, setSelectedDate] = useState('Tomorrow (21 Aug)');
   const [showDatePicker, setShowDatePicker] = useState(false);
@@ -89,26 +91,26 @@ export const MeetingRoomScreen: React.FC<MeetingRoomScreenProps> = ({
     const fetchProperties = async () => {
       try {
         setLoading(true);
-        const response = await apiService.getProperties();
-        if (response.success && response.data && response.data.properties) {
-          // Filter properties to only show "Meeting Room" types
-          const meetingRooms = response.data.properties.filter(
-            property => property.type === "Meeting Room"
-          );
-          const convertedWorkspaces = meetingRooms.map(convertPropertyToWorkspace);
+        const response = await apiService.getPropertiesByCityAndType(selectedLocation.city, 'Meeting Room', 1, 10);
+        if (response.success && response.allProperties) {
+          console.log("shahi");
+          const convertedWorkspaces = response.allProperties.map(convertPropertyToWorkspace);
           setMeetingRoomWorkspaces(convertedWorkspaces);
+        } else {
+          // No properties found for this city and type
+          setMeetingRoomWorkspaces([]);
         }
       } catch (error) {
         console.error('Failed to fetch meeting room properties:', error);
-        // Keep using empty array if API fails
-        Alert.alert('Notice', 'Unable to load meeting rooms. Please check your network connection.');
+        // Set empty array instead of showing alert
+        setMeetingRoomWorkspaces([]);
       } finally {
         setLoading(false);
       }
     };
 
     fetchProperties();
-  }, []);
+  }, [selectedLocation.city]); // Re-fetch when city changes
 
   const handleFiltersPress = () => {
     setShowFilterModal(true);
@@ -289,7 +291,14 @@ export const MeetingRoomScreen: React.FC<MeetingRoomScreenProps> = ({
             </View>
           ) : meetingRoomWorkspaces.length === 0 ? (
             <View style={styles.emptyContainer}>
-              <Text style={styles.emptyText}>No meeting rooms found</Text>
+              <Ionicons 
+                name="business-outline" 
+                size={60} 
+                color={Colors.text.light} 
+                style={styles.emptyIcon}
+              />
+              <Text style={styles.emptyTitle}>No WorkSpace available in this area</Text>
+              <Text style={styles.emptySubtitle}>We are working to bring WorkSpace here soon</Text>
             </View>
           ) : (
             meetingRoomWorkspaces.map((workspace) => (
@@ -761,6 +770,23 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     paddingVertical: Spacing.xl,
+    paddingHorizontal: Spacing.xl,
+  },
+  emptyIcon: {
+    marginBottom: Spacing.lg,
+  },
+  emptyTitle: {
+    fontSize: FontSizes.lg,
+    fontWeight: FontWeights.semibold,
+    color: Colors.text.primary,
+    textAlign: 'center',
+    marginBottom: Spacing.sm,
+  },
+  emptySubtitle: {
+    fontSize: FontSizes.md,
+    color: Colors.text.secondary,
+    textAlign: 'center',
+    lineHeight: 20,
   },
   emptyText: {
     fontSize: FontSizes.md,

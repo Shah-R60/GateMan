@@ -9,10 +9,10 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { Colors, Spacing, FontSizes, FontWeights, BorderRadius } from '../constants/theme';
-import { Workspace } from '../types';
+import { Property } from '../types';
 
 interface DateSelectionScreenProps {
-  workspace: Workspace;
+  propertyData: Property;
   onBack: () => void;
   onDateSelect: (dates: string, count: number) => void;
   selectedDate?: string;
@@ -34,7 +34,7 @@ const monthNames = [
 ];
 
 export const DateSelectionScreen: React.FC<DateSelectionScreenProps> = ({
-  workspace,
+  propertyData,
   onBack,
   onDateSelect,
   selectedDate,
@@ -227,7 +227,7 @@ export const DateSelectionScreen: React.FC<DateSelectionScreenProps> = ({
 
         {/* Workspace Info */}
         <View style={styles.workspaceInfo}>
-          <Text style={styles.workspaceName}>{workspace.name}</Text>
+          <Text style={styles.workspaceName}>{propertyData.name}</Text>
           <View style={styles.workspaceDetails}>
             <Ionicons name="time-outline" size={16} color={Colors.text.secondary} />
             <Text style={styles.workspaceTime}>9:00 am - 6:00 pm (Mon to Sat)</Text>
