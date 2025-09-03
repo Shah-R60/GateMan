@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import {
   View,
   Text,
@@ -8,6 +8,7 @@ import {
   TextInput,
   Share,
   Alert,
+  ActivityIndicator,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
@@ -56,6 +57,11 @@ export const DeskScreen: React.FC<DeskScreenProps> = ({
   // State for workspace data
   const [deskWorkspaces, setDeskWorkspaces] = useState<Workspace[]>([]);
   const [loading, setLoading] = useState(false);
+  const [loadingMore, setLoadingMore] = useState(false);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [hasMoreData, setHasMoreData] = useState(true);
+  
+  const ITEMS_PER_PAGE = 2;
 
   // Function to convert Property to Workspace format
   const convertPropertyToWorkspace = (property: Property): Workspace => {
@@ -85,31 +91,132 @@ export const DeskScreen: React.FC<DeskScreenProps> = ({
     };
   };
 
-  // Fetch properties from API
-  useEffect(() => {
-    const fetchProperties = async () => {
-      try {
+  // Fetch properties from API with pagination support
+  const fetchProperties = useCallback(async (page: number = 1, isLoadMore: boolean = false) => {
+    try {
+      if (isLoadMore) {
+        setLoadingMore(true);
+      } else {
         setLoading(true);
-        const response = await apiService.getPropertiesByCityAndType(selectedLocation.city, 'Coworking Space', 1, 10);
-        if (response.success && response.allProperties) {
-          console.log("bahi");
-          const convertedWorkspaces = response.allProperties.map(convertPropertyToWorkspace);
-          setDeskWorkspaces(convertedWorkspaces);
+      }
+
+      console.log(`🔄 Fetching page ${page} for city: ${selectedLocation.city}`);
+      
+      const response = await apiService.getPropertiesByCityAndType(
+        selectedLocation.city, 
+        'Coworking Space', 
+        page, 
+        ITEMS_PER_PAGE
+      );
+
+      if (response.success && response.allProperties) {
+        console.log(`✅ Fetched page ${page}:`, response.allProperties.length, 'items');
+        const convertedWorkspaces = response.allProperties.map(convertPropertyToWorkspace);
+        
+        if (isLoadMore) {
+          // Append to existing data, but avoid duplicates
+          setDeskWorkspaces(prev => {
+            const existingIds = new Set(prev.map(workspace => workspace.id));
+            const newWorkspaces = convertedWorkspaces.filter(workspace => !existingIds.has(workspace.id));
+            console.log(`📋 Adding ${newWorkspaces.length} new workspaces to existing ${prev.length}`);
+            return [...prev, ...newWorkspaces];
+          });
         } else {
-          // No properties found for this city and type
+          // Replace existing data (first load or city change)
+          setDeskWorkspaces(convertedWorkspaces);
+        }
+
+        // Check if there's more data to load
+        // If we got less than ITEMS_PER_PAGE, we've reached the end
+        const hasMore = response.allProperties.length === ITEMS_PER_PAGE;
+        console.log(`📊 Has more data: ${hasMore} (got ${response.allProperties.length}/${ITEMS_PER_PAGE})`);
+        setHasMoreData(hasMore);
+      } else {
+        // No properties found
+        console.log(`❌ No properties found for page ${page}`);
+        if (!isLoadMore) {
           setDeskWorkspaces([]);
         }
-      } catch (error) {
-        console.error('Failed to fetch properties:', error);
-        // Set empty array instead of showing alert
-        setDeskWorkspaces([]);
-      } finally {
-        setLoading(false);
+        setHasMoreData(false);
       }
-    };
+    } catch (error) {
+      console.error('❌ Failed to fetch properties:', error);
+      if (!isLoadMore) {
+        setDeskWorkspaces([]);
+      }
+      setHasMoreData(false);
+    } finally {
+      setLoading(false);
+      setLoadingMore(false);
+    }
+  }, [selectedLocation.city]);
 
-    fetchProperties();
-  }, [selectedLocation.city]); // Re-fetch when city changes
+  // Initial fetch when component mounts or city changes
+  useEffect(() => {
+    setCurrentPage(1);
+    setHasMoreData(true);
+    fetchProperties(1, false);
+  }, [selectedLocation.city]);
+
+  // Handle load more data
+  const handleLoadMore = useCallback(() => {
+    if (!loadingMore && !loading && hasMoreData) {
+      const nextPage = currentPage + 1;
+      console.log(`🔄 Loading page ${nextPage}... (current: ${currentPage})`);
+      setCurrentPage(nextPage);
+      fetchProperties(nextPage, true);
+    } else {
+      console.log(`⏸️ Skipping load more - loading: ${loading}, loadingMore: ${loadingMore}, hasMoreData: ${hasMoreData}`);
+    }
+  }, [currentPage, loadingMore, loading, hasMoreData, fetchProperties]);
+
+  // Handle scroll to detect when user reaches bottom
+  const handleScroll = useCallback((event: any) => {
+    const { layoutMeasurement, contentOffset, contentSize } = event.nativeEvent;
+    
+    // Increase trigger distance to 150px before bottom for better detection
+    const paddingToBottom = 150;
+    const isCloseToBottom = layoutMeasurement.height + contentOffset.y >= contentSize.height - paddingToBottom;
+    
+    // Only trigger if we can actually load more and aren't already loading
+    const canLoadMore = hasMoreData && !loadingMore && !loading;
+    
+    // Add debugging logs
+    console.log('📜 Scroll Debug:', {
+      layoutHeight: Math.round(layoutMeasurement.height),
+      scrollY: Math.round(contentOffset.y),
+      contentHeight: Math.round(contentSize.height),
+      distanceFromBottom: Math.round(contentSize.height - (layoutMeasurement.height + contentOffset.y)),
+      isCloseToBottom,
+      canLoadMore,
+      currentPage
+    });
+    
+    // Check if scrolled close to bottom and can load more
+    if (isCloseToBottom && canLoadMore) {
+      console.log('� Triggering load more from scroll...');
+      handleLoadMore();
+    }
+  }, [handleLoadMore, hasMoreData, loadingMore, loading, currentPage]);
+
+  // Alternative: Handle when user finishes scrolling
+  const handleScrollEndDrag = useCallback((event: any) => {
+    const { layoutMeasurement, contentOffset, contentSize } = event.nativeEvent;
+    const paddingToBottom = 100;
+    const isCloseToBottom = layoutMeasurement.height + contentOffset.y >= contentSize.height - paddingToBottom;
+    const canLoadMore = hasMoreData && !loadingMore && !loading;
+    
+    console.log('🛑 Scroll End Drag:', {
+      isCloseToBottom,
+      canLoadMore,
+      currentPage
+    });
+    
+    if (isCloseToBottom && canLoadMore) {
+      console.log('� Triggering load more from scroll end...');
+      handleLoadMore();
+    }
+  }, [handleLoadMore, hasMoreData, loadingMore, loading, currentPage]);
 
   const handleDateSelect = (date: string) => {
     setSelectedDate(date);
@@ -214,7 +321,14 @@ export const DeskScreen: React.FC<DeskScreenProps> = ({
         </View>
       </SafeAreaView>
 
-      <ScrollView style={styles.scrollContainer} showsVerticalScrollIndicator={false}>
+      <ScrollView 
+        style={styles.scrollContainer} 
+        showsVerticalScrollIndicator={false}
+        onScroll={handleScroll}
+        onScrollEndDrag={handleScrollEndDrag}
+        scrollEventThrottle={100}
+        contentContainerStyle={styles.scrollContent}
+      >
         {/* Search Bar */}
         <View style={styles.searchContainer}>
           <TouchableOpacity style={styles.searchInputContainer} onPress={handleSearchPress}>
@@ -272,7 +386,10 @@ export const DeskScreen: React.FC<DeskScreenProps> = ({
 
         {/* Results Count */}
         <Text style={styles.resultsText}>
-          Showing {deskWorkspaces.length} result(s) for desks in {selectedLocation.city} for {selectedDate}
+          {loading && currentPage === 1 
+            ? 'Loading workspaces...' 
+            : `Showing ${deskWorkspaces.length}${hasMoreData ? '+' : ''} result(s) for desks in ${selectedLocation.city} for ${selectedDate}`
+          }
         </Text>
 
         {/* Credits Info */}
@@ -283,8 +400,9 @@ export const DeskScreen: React.FC<DeskScreenProps> = ({
 
         {/* Workspace List */}
         <View style={styles.workspaceList}>
-          {loading ? (
+          {loading && currentPage === 1 ? (
             <View style={styles.loadingContainer}>
+              <ActivityIndicator size="large" color={Colors.primary} />
               <Text style={styles.loadingText}>Loading workspaces...</Text>
             </View>
           ) : deskWorkspaces.length === 0 ? (
@@ -299,78 +417,97 @@ export const DeskScreen: React.FC<DeskScreenProps> = ({
               <Text style={styles.emptySubtitle}>We are working to bring WorkSpace here soon</Text>
             </View>
           ) : (
-            deskWorkspaces.map((workspace) => (
-            <TouchableOpacity
-              key={workspace.id}
-              style={styles.workspaceCard}
-              onPress={() => handleWorkspacePress(workspace)}
-              activeOpacity={0.8}
-            >
-              <View style={styles.workspaceImageContainer}>
-                <ImageCarousel
-                  images={workspace.images || [workspace.imageUrl]}
-                  height={240}
-                  showIndicators={true}
-                  showNavigation={true}
-                  borderRadius={BorderRadius.lg}
-                />
-                {workspace.isPopular && (
-                  <View style={styles.popularBadge}>
-                    <Ionicons name="star" size={12} color={Colors.white} />
-                    <Text style={styles.popularText}>Popular</Text>
-                  </View>
-                )}
-                <TouchableOpacity 
-                  style={styles.shareButton}
-                  onPress={() => handleSharePress(workspace)}
+            <>
+              {deskWorkspaces.map((workspace) => (
+                <TouchableOpacity
+                  key={workspace.id}
+                  style={styles.workspaceCard}
+                  onPress={() => handleWorkspacePress(workspace)}
+                  activeOpacity={0.8}
                 >
-                  <Ionicons name="share-outline" size={20} color={Colors.white} />
-                </TouchableOpacity>
-                <TouchableOpacity style={styles.favoriteButton}>
-                  <Ionicons name="heart-outline" size={20} color={Colors.white} />
-                </TouchableOpacity>
-              </View>
-
-              <View style={styles.workspaceInfo}>
-                {workspace.seatingTypes && workspace.seatingTypes[0].available && (
-                  <View style={styles.availabilityBadge}>
-                    <Ionicons name="checkmark-circle" size={14} color={Colors.success} />
-                    <Text style={styles.availabilityText}>1 offer available at this workspace</Text>
+                  <View style={styles.workspaceImageContainer}>
+                    <ImageCarousel
+                      images={workspace.images || [workspace.imageUrl]}
+                      height={240}
+                      showIndicators={true}
+                      showNavigation={true}
+                      borderRadius={BorderRadius.lg}
+                    />
+                    {workspace.isPopular && (
+                      <View style={styles.popularBadge}>
+                        <Ionicons name="star" size={12} color={Colors.white} />
+                        <Text style={styles.popularText}>Popular</Text>
+                      </View>
+                    )}
+                    <TouchableOpacity 
+                      style={styles.shareButton}
+                      onPress={() => handleSharePress(workspace)}
+                    >
+                      <Ionicons name="share-outline" size={20} color={Colors.white} />
+                    </TouchableOpacity>
+                    <TouchableOpacity style={styles.favoriteButton}>
+                      <Ionicons name="heart-outline" size={20} color={Colors.white} />
+                    </TouchableOpacity>
                   </View>
-                )}
 
-                <View style={styles.ratingContainer}>
-                  <Ionicons name="star" size={14} color={Colors.warning} />
-                  <Text style={styles.ratingText}>
-                    {workspace.rating} (1,649 Brand Reviews)
+                  <View style={styles.workspaceInfo}>
+                    {workspace.seatingTypes && workspace.seatingTypes[0].available && (
+                      <View style={styles.availabilityBadge}>
+                        <Ionicons name="checkmark-circle" size={14} color={Colors.success} />
+                        <Text style={styles.availabilityText}>1 offer available at this workspace</Text>
+                      </View>
+                    )}
+
+                    <View style={styles.ratingContainer}>
+                      <Ionicons name="star" size={14} color={Colors.warning} />
+                      <Text style={styles.ratingText}>
+                        {workspace.rating} (1,649 Brand Reviews)
+                      </Text>
+                    </View>
+
+                    <Text style={styles.workspaceName}>{workspace.name}</Text>
+                    <Text style={styles.workspaceCategory}>COWORKING | {workspace.location}</Text>
+                    
+                    <View style={styles.timeContainer}>
+                      <Ionicons name="time-outline" size={16} color={Colors.text.secondary} />
+                      <Text style={styles.timeText}>{workspace.hours}</Text>
+                    </View>
+
+                    <View style={styles.workspaceFooter}>
+                      <View style={styles.priceContainer}>
+                        <Text style={styles.price}>
+                          {workspace.currency}{workspace.price}
+                        </Text>
+                        <Text style={styles.period}>{workspace.period}</Text>
+                      </View>
+                      <TouchableOpacity
+                        style={styles.bookButton}
+                        onPress={() => handleBookPress(workspace)}
+                      >
+                        <Text style={styles.bookButtonText}>Book Desk</Text>
+                      </TouchableOpacity>
+                    </View>
+                  </View>
+                </TouchableOpacity>
+              ))}
+              
+              {/* Load More Indicator */}
+              {loadingMore && (
+                <View style={styles.loadMoreContainer}>
+                  <ActivityIndicator size="small" color={Colors.primary} />
+                  <Text style={styles.loadMoreText}>Loading more workspaces...</Text>
+                </View>
+              )}
+              
+              {/* End of Results Message */}
+              {!hasMoreData && deskWorkspaces.length > 0 && (
+                <View style={styles.endOfResultsContainer}>
+                  <Text style={styles.endOfResultsText}>
+                    You've reached the end of results
                   </Text>
                 </View>
-
-                <Text style={styles.workspaceName}>{workspace.name}</Text>
-                <Text style={styles.workspaceCategory}>COWORKING | {workspace.location}</Text>
-                
-                <View style={styles.timeContainer}>
-                  <Ionicons name="time-outline" size={16} color={Colors.text.secondary} />
-                  <Text style={styles.timeText}>{workspace.hours}</Text>
-                </View>
-
-                <View style={styles.workspaceFooter}>
-                  <View style={styles.priceContainer}>
-                    <Text style={styles.price}>
-                      {workspace.currency}{workspace.price}
-                    </Text>
-                    <Text style={styles.period}>{workspace.period}</Text>
-                  </View>
-                  <TouchableOpacity
-                    style={styles.bookButton}
-                    onPress={() => handleBookPress(workspace)}
-                  >
-                    <Text style={styles.bookButtonText}>Book Desk</Text>
-                  </TouchableOpacity>
-                </View>
-              </View>
-            </TouchableOpacity>
-            ))
+              )}
+            </>
           )}
         </View>
       </ScrollView>
@@ -430,6 +567,10 @@ const styles = StyleSheet.create({
   },
   scrollContainer: {
     flex: 1,
+  },
+  scrollContent: {
+    flexGrow: 1,
+    paddingBottom: Spacing.xl,
   },
   searchContainer: {
     paddingHorizontal: Spacing.md,
@@ -787,5 +928,27 @@ const styles = StyleSheet.create({
   emptyText: {
     fontSize: FontSizes.md,
     color: Colors.text.secondary,
+  },
+  loadMoreContainer: {
+    flexDirection: 'row',
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingVertical: Spacing.lg,
+    paddingHorizontal: Spacing.md,
+  },
+  loadMoreText: {
+    marginLeft: Spacing.sm,
+    fontSize: FontSizes.sm,
+    color: Colors.text.secondary,
+  },
+  endOfResultsContainer: {
+    alignItems: 'center',
+    paddingVertical: Spacing.lg,
+    paddingHorizontal: Spacing.md,
+  },
+  endOfResultsText: {
+    fontSize: FontSizes.sm,
+    color: Colors.text.light,
+    textAlign: 'center',
   },
 });

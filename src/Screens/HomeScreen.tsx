@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import {
   View,
   Text,
@@ -53,6 +53,11 @@ export const HomeScreen: React.FC = () => {
   const [showBookingDetailScreen, setShowBookingDetailScreen] = useState(false);
   const [workspaces, setWorkspaces] = useState<Workspace[]>(mockWorkspaces);
   const [loading, setLoading] = useState(false);
+  const [loadingMore, setLoadingMore] = useState(false);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [hasMoreData, setHasMoreData] = useState(true);
+
+  const ITEMS_PER_PAGE = 2;
 
   // Function to convert Property to Workspace format
   const convertPropertyToWorkspace = (property: Property): Workspace => {
@@ -78,34 +83,91 @@ export const HomeScreen: React.FC = () => {
     };
   };
 
-  // Fetch properties from API
-  useEffect(() => {
-    const fetchProperties = async () => {
-      try {
+  // Fetch properties from API with pagination support
+  const fetchProperties = useCallback(async (page: number = 1, isLoadMore: boolean = false) => {
+    try {
+      if (isLoadMore) {
+        setLoadingMore(true);
+      } else {
         setLoading(true);
-        console.log(selectedLocation.city);
-        const response = await apiService.getPropertiesByCity(selectedLocation.city, 1, 10);
-        if (response.success && response.allProperties) {
-          console.log('hii')
-          console.log('Fetched properties:', response.allProperties);
-          const convertedWorkspaces = response.allProperties.map(convertPropertyToWorkspace);
-          setWorkspaces(convertedWorkspaces);
+      }
+
+      console.log(`🔄 HomeScreen: Fetching page ${page} for city: ${selectedLocation.city}`);
+      
+      const response = await apiService.getPropertiesByCity(selectedLocation.city, page, ITEMS_PER_PAGE);
+      
+      if (response.success && response.allProperties) {
+        console.log(`✅ HomeScreen: Fetched page ${page}:`, response.allProperties.length, 'items');
+        const convertedWorkspaces = response.allProperties.map(convertPropertyToWorkspace);
+        
+        if (isLoadMore) {
+          // Append to existing data, but avoid duplicates
+          setWorkspaces(prev => {
+            const existingIds = new Set(prev.map(workspace => workspace.id));
+            const newWorkspaces = convertedWorkspaces.filter(workspace => !existingIds.has(workspace.id));
+            console.log(`📋 HomeScreen: Adding ${newWorkspaces.length} new workspaces to existing ${prev.length}`);
+            return [...prev, ...newWorkspaces];
+          });
         } else {
-          // No properties found for this city
+          // Replace existing data (first load or city change)
+          setWorkspaces(convertedWorkspaces);
+        }
+
+        // Check if there's more data to load
+        const hasMore = response.allProperties.length === ITEMS_PER_PAGE;
+        console.log(`📊 HomeScreen: Has more data: ${hasMore} (got ${response.allProperties.length}/${ITEMS_PER_PAGE})`);
+        setHasMoreData(hasMore);
+      } else {
+        // No properties found for this city
+        console.log(`❌ HomeScreen: No properties found for page ${page}`);
+        if (!isLoadMore) {
           setWorkspaces([]);
         }
-      } catch (error) {
-        console.error('Failed to fetch properties:', error);
+        setHasMoreData(false);
+      }
+    } catch (error) {
+      console.error('❌ HomeScreen: Failed to fetch properties:', error);
+      if (!isLoadMore) {
         // Set empty array instead of using mock data
         setWorkspaces([]);
         Alert.alert('Notice', 'Unable to load workspaces. Please check your network connection.');
-      } finally {
-        setLoading(false);
       }
-    };
+      setHasMoreData(false);
+    } finally {
+      setLoading(false);
+      setLoadingMore(false);
+    }
+  }, [selectedLocation.city]);
 
-    fetchProperties();
-  }, [selectedLocation.city]); // Re-fetch when city changes
+  // Initial load when city changes
+  useEffect(() => {
+    setCurrentPage(1);
+    setHasMoreData(true);
+    fetchProperties(1, false);
+  }, [selectedLocation.city, fetchProperties]);
+
+  // Handle load more for infinite scrolling
+  const handleLoadMore = useCallback(() => {
+    console.log(`🚀 HomeScreen: Load more triggered - loadingMore: ${loadingMore}, loading: ${loading}, hasMoreData: ${hasMoreData}`);
+    
+    if (!loadingMore && !loading && hasMoreData) {
+      const nextPage = currentPage + 1;
+      console.log(`📖 HomeScreen: Loading page ${nextPage}`);
+      setCurrentPage(nextPage);
+      fetchProperties(nextPage, true);
+    }
+  }, [loadingMore, loading, hasMoreData, currentPage, fetchProperties]);
+
+  // Handle scroll events for infinite loading
+  const handleScroll = useCallback((event: any) => {
+    const { layoutMeasurement, contentOffset, contentSize } = event.nativeEvent;
+    const isCloseToBottom = layoutMeasurement.height + contentOffset.y >= contentSize.height - 150;
+    
+    if (isCloseToBottom) {
+      console.log(`📍 HomeScreen: Close to bottom detected`);
+      handleLoadMore();
+    }
+  }, [handleLoadMore]);
 
   // Event handlers
   const handleLocationPress = () => {
@@ -387,6 +449,9 @@ export const HomeScreen: React.FC = () => {
         style={styles.scrollContainer}
         showsVerticalScrollIndicator={false}
         contentContainerStyle={styles.scrollContent}
+        onScroll={handleScroll}
+        onScrollEndDrag={handleLoadMore}
+        scrollEventThrottle={16}
       >
         <SearchBar
           placeholder={`Try: Oyo Workflo - ${selectedLocation.name} Building`}
@@ -402,17 +467,28 @@ export const HomeScreen: React.FC = () => {
           onServicePress={handleServicePress}
         />
 
-        {filteredWorkspaces.length > 0 ? (
-          <WorkspaceList
-            workspaces={filteredWorkspaces}
-            selectedLocation={selectedSubLocation === 'All Locations' ? selectedLocation.city : selectedSubLocation}
-            onWorkspacePress={handleWorkspacePress}
-            onBookPress={handleBookPress}
-            onFavoritePress={handleFavoritePress}
-            onSharePress={handleSharePress}
-            onViewAllPress={handleViewAllPress}
-          />
-        ) : !loading && (
+        {loading ? (
+          <View style={styles.loadingContainer}>
+            <Text style={styles.loadingText}>Loading workspaces...</Text>
+          </View>
+        ) : filteredWorkspaces.length > 0 ? (
+          <>
+            <WorkspaceList
+              workspaces={filteredWorkspaces}
+              selectedLocation={selectedSubLocation === 'All Locations' ? selectedLocation.city : selectedSubLocation}
+              onWorkspacePress={handleWorkspacePress}
+              onBookPress={handleBookPress}
+              onFavoritePress={handleFavoritePress}
+              onSharePress={handleSharePress}
+              onViewAllPress={handleViewAllPress}
+            />
+            {loadingMore && (
+              <View style={styles.loadingMoreContainer}>
+                <Text style={styles.loadingMoreText}>Loading more workspaces...</Text>
+              </View>
+            )}
+          </>
+        ) : (
           <View style={styles.emptyStateContainer}>
             <Ionicons 
               name="business-outline" 
@@ -472,5 +548,24 @@ const styles = StyleSheet.create({
     color: Colors.text.secondary,
     textAlign: 'center',
     lineHeight: 20,
+  },
+  loadingContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingVertical: 32,
+    minHeight: 200,
+  },
+  loadingText: {
+    fontSize: 16,
+    color: Colors.text.secondary,
+  },
+  loadingMoreContainer: {
+    paddingVertical: 20,
+    alignItems: 'center',
+  },
+  loadingMoreText: {
+    fontSize: 14,
+    color: Colors.text.secondary,
   },
 });
