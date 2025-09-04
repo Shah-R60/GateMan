@@ -8,6 +8,8 @@ import {
   Image,
   Dimensions,
   ActivityIndicator,
+  Linking,
+  Alert,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { StatusBar } from 'expo-status-bar';
@@ -17,6 +19,62 @@ import { Workspace, Property } from '../types';
 import { apiService } from '../services/apiService';
 
 const { width } = Dimensions.get('window');
+
+// Utility function to format time from 24-hour to 12-hour format
+const formatTime = (time: string): string => {
+  const [hours, minutes] = time.split(':');
+  const hour24 = parseInt(hours, 10);
+  const hour12 = hour24 === 0 ? 12 : hour24 > 12 ? hour24 - 12 : hour24;
+  const ampm = hour24 >= 12 ? 'pm' : 'am';
+  return `${hour12}:${minutes} ${ampm}`;
+};
+
+// Utility function to get formatted workspace timings from bookingRules
+const getWorkspaceTimings = (property: Property): { weekdays: string; weekend: string } => {
+  if (!property.bookingRules?.allowedTimeSlots) {
+    // Fallback to old logic if bookingRules not available
+    const weekdays = property.isSaturdayOpened 
+      ? "9:00 am - 9:00 pm (Mon to Sat)"
+      : "9:00 am - 9:00 pm (Mon to Fri)";
+    const weekend = property.isSundayOpened 
+      ? "9:00 am - 9:00 pm (Sun)"
+      : "Closed (Sun)";
+    return { weekdays, weekend };
+  }
+
+  const timeSlots = property.bookingRules.allowedTimeSlots;
+  
+  // Group days by similar timings
+  const weekdaySlots = timeSlots.filter(slot => 
+    ['monday', 'tuesday', 'wednesday', 'thursday', 'friday'].includes(slot.day.toLowerCase()) && slot.isAvailable
+  );
+  
+  const saturdaySlot = timeSlots.find(slot => slot.day.toLowerCase() === 'saturday' && slot.isAvailable);
+  const sundaySlot = timeSlots.find(slot => slot.day.toLowerCase() === 'sunday' && slot.isAvailable);
+  
+  // Get weekday timing (assuming all weekdays have same timing)
+  let weekdays = "Closed (Mon to Fri)";
+  if (weekdaySlots.length > 0) {
+    const startTime = formatTime(weekdaySlots[0].startTime);
+    const endTime = formatTime(weekdaySlots[0].endTime);
+    
+    if (saturdaySlot) {
+      weekdays = `${startTime} - ${endTime} (Mon to Sat)`;
+    } else {
+      weekdays = `${startTime} - ${endTime} (Mon to Fri)`;
+    }
+  }
+  
+  // Get weekend timing
+  let weekend = "Closed (Sun)";
+  if (sundaySlot) {
+    const startTime = formatTime(sundaySlot.startTime);
+    const endTime = formatTime(sundaySlot.endTime);
+    weekend = `${startTime} - ${endTime} (Sun)`;
+  }
+  
+  return { weekdays, weekend };
+};
 
 interface WorkspaceDetailsScreenProps {
   workspace: Workspace;
@@ -109,6 +167,7 @@ export const WorkspaceDetailsScreen: React.FC<WorkspaceDetailsScreenProps> = ({
   const [propertyData, setPropertyData] = useState<Property | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [isDescriptionExpanded, setIsDescriptionExpanded] = useState(false);
 
   // Log the propertyId for debugging
   console.log('WorkspaceDetailsScreen - Received propertyId:', propertyId);
@@ -117,6 +176,11 @@ export const WorkspaceDetailsScreen: React.FC<WorkspaceDetailsScreenProps> = ({
   useEffect(() => {
     fetchPropertyDetails();
   }, [propertyId]);
+
+  // Reset description state when property data changes
+  useEffect(() => {
+    setIsDescriptionExpanded(false);
+  }, [propertyData]);
 
   const fetchPropertyDetails = async () => {
     if (!propertyId) {
@@ -234,6 +298,49 @@ export const WorkspaceDetailsScreen: React.FC<WorkspaceDetailsScreenProps> = ({
     };
     
     return iconMap[iconName] || 'checkmark-circle';
+  };
+
+  // Handle opening Google Maps
+  const handleViewLocationOnMap = async () => {
+    const googleMapLink = propertyData?.googleMapLink;
+    
+    if (!googleMapLink) {
+      Alert.alert('Error', 'Map location is not available for this property.');
+      return;
+    }
+
+    try {
+      const supported = await Linking.canOpenURL(googleMapLink);
+      
+      if (supported) {
+        await Linking.openURL(googleMapLink);
+      } else {
+        Alert.alert('Error', 'Unable to open map. Please check if you have a maps app installed.');
+      }
+    } catch (error) {
+      console.error('Failed to open map:', error);
+      Alert.alert('Error', 'Failed to open map location.');
+    }
+  };
+
+  // Handle toggling description expansion
+  const handleToggleDescription = () => {
+    setIsDescriptionExpanded(!isDescriptionExpanded);
+  };
+
+  // Get the description text
+  const getDescriptionText = () => {
+    return propertyData 
+      ? propertyData.description 
+      : "Workflo Mayuransh Elanza, Ahmedabad is a beautifully crafted smart coworking & office space for rent with over 140 seats. From meeting rooms to private offices for rent to the green integrated spaces.";
+  };
+
+  // Check if description is long enough to need "Read more"
+  const shouldShowReadMore = () => {
+    const text = getDescriptionText();
+    // Rough estimation: if text is longer than 120 characters, it likely needs more than 3 lines
+    // Based on typical font size and line width on mobile devices
+    return text && text.length > 120;
   };
 
   return (
@@ -358,28 +465,34 @@ export const WorkspaceDetailsScreen: React.FC<WorkspaceDetailsScreenProps> = ({
             
             <View style={styles.overviewItem}>
               <Text style={styles.overviewLabel}>Workspace Timings</Text>
-              <View style={styles.timingItem}>
-                <Ionicons name="time-outline" size={16} color={Colors.text.secondary} />
-                <Text style={styles.timingText}>
-                  {propertyData 
-                    ? propertyData.isSaturdayOpened 
-                      ? "9:00 am - 9:00 pm (Mon to Sat)"
-                      : "9:00 am - 9:00 pm (Mon to Fri)"
-                    : "9:00 am - 9:00 pm (Mon to Sat)"
-                  }
-                </Text>
-              </View>
-              <View style={styles.timingItem}>
-                <Ionicons name="time-outline" size={16} color={Colors.text.secondary} />
-                <Text style={styles.timingText}>
-                  {propertyData 
-                    ? propertyData.isSundayOpened 
-                      ? "9:00 am - 9:00 pm (Sun)"
-                      : "Closed (Sun)"
-                    : "Closed (Sun)"
-                  }
-                </Text>
-              </View>
+              {propertyData ? (
+                (() => {
+                  const timings = getWorkspaceTimings(propertyData);
+                  return (
+                    <>
+                      <View style={styles.timingItem}>
+                        <Ionicons name="time-outline" size={16} color={Colors.text.secondary} />
+                        <Text style={styles.timingText}>{timings.weekdays}</Text>
+                      </View>
+                      <View style={styles.timingItem}>
+                        <Ionicons name="time-outline" size={16} color={Colors.text.secondary} />
+                        <Text style={styles.timingText}>{timings.weekend}</Text>
+                      </View>
+                    </>
+                  );
+                })()
+              ) : (
+                <>
+                  <View style={styles.timingItem}>
+                    <Ionicons name="time-outline" size={16} color={Colors.text.secondary} />
+                    <Text style={styles.timingText}>9:00 am - 9:00 pm (Mon to Sat)</Text>
+                  </View>
+                  <View style={styles.timingItem}>
+                    <Ionicons name="time-outline" size={16} color={Colors.text.secondary} />
+                    <Text style={styles.timingText}>Closed (Sun)</Text>
+                  </View>
+                </>
+              )}
             </View>
 
             <View style={styles.overviewItem}>
@@ -452,7 +565,7 @@ export const WorkspaceDetailsScreen: React.FC<WorkspaceDetailsScreenProps> = ({
                   }
                 </Text>
               </View>
-              <TouchableOpacity style={styles.mapButton}>
+              <TouchableOpacity style={styles.mapButton} onPress={handleViewLocationOnMap}>
                 <Text style={styles.mapButtonText}>View location on map</Text>
               </TouchableOpacity>
             </View>
@@ -535,15 +648,24 @@ export const WorkspaceDetailsScreen: React.FC<WorkspaceDetailsScreenProps> = ({
             <Text style={styles.sectionTitle}>
               More about {propertyData ? propertyData.name : workspace.name}
             </Text>
-            <Text style={styles.description}>
-              {propertyData 
-                ? propertyData.description 
-                : "Workflo Mayuransh Elanza, Ahmedabad is a beautifully crafted smart coworking & office space for rent with over 140 seats. From meeting rooms to private offices for rent to the green integrated spaces."
-              }
+            
+            <Text 
+              style={[
+                styles.description,
+                !isDescriptionExpanded && styles.descriptionCollapsed
+              ]}
+              numberOfLines={isDescriptionExpanded ? undefined : 3}
+            >
+              {getDescriptionText()}
             </Text>
-            <TouchableOpacity>
-              <Text style={styles.readMoreText}>Read more...</Text>
-            </TouchableOpacity>
+            
+            {shouldShowReadMore() && (
+              <TouchableOpacity onPress={handleToggleDescription}>
+                <Text style={styles.readMoreText}>
+                  {isDescriptionExpanded ? 'Read less...' : 'Read more...'}
+                </Text>
+              </TouchableOpacity>
+            )}
           </View>
 
           {/* Reviews */}
@@ -1068,10 +1190,15 @@ const styles = StyleSheet.create({
     lineHeight: 20,
     marginBottom: Spacing.sm,
   },
+  descriptionCollapsed: {
+    // Ensure text is properly truncated when collapsed
+    overflow: 'hidden',
+  },
   readMoreText: {
     fontSize: FontSizes.sm,
     color: Colors.primary,
     fontWeight: FontWeights.medium,
+    marginTop: Spacing.xs,
   },
   overallRating: {
     flexDirection: 'row',

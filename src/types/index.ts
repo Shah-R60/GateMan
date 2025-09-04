@@ -54,6 +54,34 @@ export interface Property {
   furnishingLevel: string;
   propertyStatus: string;
   verificationStatus: string;
+  bookingRules?: {
+    minBookingHours: number;
+    maxBookingHours: number;
+    bufferHours: number;
+    allowedTimeSlots: {
+      day: string;
+      startTime: string;
+      endTime: string;
+      isAvailable: boolean;
+    }[];
+    checkoutGracePeriod: number;
+  };
+  pricing?: {
+    hourlyRate: number;
+    dailyRate: number;
+    weeklyRate: number;
+    monthlyRate: number;
+    cleaningFee: number;
+    overtimeHourlyRate: number;
+  };
+  location?: {
+    nearestMetroStation: string;
+    distanceFromMetro: number;
+    nearestBusStop: string;
+    distanceFromBusStop: number;
+    nearestRailwayStation: string;
+    distanceFromRailway: number;
+  };
   createdAt: string;
   updatedAt: string;
 }

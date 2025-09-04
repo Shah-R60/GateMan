@@ -15,12 +15,12 @@ export default function App() {
   return (
     <SafeAreaProvider>
       <CityProvider>
-        {/* {isAuthenticated ? (
+        {isAuthenticated ? (
           <HomeScreen />
         ) : (
           <SignUp onLoginSuccess={handleLoginSuccess} />
-        )} */}
-        <HomeScreen/>
+        )}
+        {/* <HomeScreen/> */}
       </CityProvider>
     </SafeAreaProvider>
   );

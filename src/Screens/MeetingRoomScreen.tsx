@@ -20,6 +20,20 @@ import { apiService } from '../services/apiService';
 import { ImageCarousel } from '../components/common/ImageCarousel';
 import { useCity } from '../context/CityContext';
 
+// Utility function to get today's date formatted as "Wed, 03 Sep 2025"
+const getTodaysDate = (): string => {
+  const today = new Date();
+  const days = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+  const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+  
+  const dayName = days[today.getDay()];
+  const day = today.getDate().toString().padStart(2, '0');
+  const month = months[today.getMonth()];
+  const year = today.getFullYear();
+  
+  return `${dayName}, ${day} ${month} ${year}`;
+};
+
 interface MeetingRoomScreenProps {
   selectedSubLocation: string;
   onBack: () => void;
@@ -35,7 +49,7 @@ export const MeetingRoomScreen: React.FC<MeetingRoomScreenProps> = ({
   const { state: cityState } = useCity();
   const { selectedLocation } = cityState;
   const [searchQuery, setSearchQuery] = useState('');
-  const [selectedDate, setSelectedDate] = useState('Tomorrow (21 Aug)');
+  const [selectedDate, setSelectedDate] = useState(getTodaysDate());
   const [showDatePicker, setShowDatePicker] = useState(false);
   const [showFilterModal, setShowFilterModal] = useState(false);
   const [showWorkspaceSearch, setShowWorkspaceSearch] = useState(false);
@@ -62,6 +76,11 @@ export const MeetingRoomScreen: React.FC<MeetingRoomScreenProps> = ({
   const [hasMoreData, setHasMoreData] = useState(true);
   
   const ITEMS_PER_PAGE = 2;
+
+  // Update date to current date when component mounts
+  useEffect(() => {
+    setSelectedDate(getTodaysDate());
+  }, []);
 
   // Function to convert Property to Workspace format
   const convertPropertyToWorkspace = (property: Property): Workspace => {
@@ -344,7 +363,7 @@ export const MeetingRoomScreen: React.FC<MeetingRoomScreenProps> = ({
 
         {/* Results Count */}
         <Text style={styles.resultsText}>
-          Showing {meetingRoomWorkspaces.length} result(s) for meeting rooms in {selectedLocation.city} for {selectedDate}
+          Showing result(s) for meeting rooms in {selectedLocation.city} for {selectedDate}
         </Text>
 
         {/* Credits Info */}
